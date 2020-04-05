@@ -1,29 +1,37 @@
 package com.wayqui.transaq.api;
 
-import com.wayqui.transaq.api.model.*;
-import com.wayqui.transaq.service.TransactionServiceImpl;
+import com.wayqui.transaq.api.model.FindTransactionRequest;
+import com.wayqui.transaq.api.model.TransactionRequest;
+import com.wayqui.transaq.api.model.TransactionResponse;
+import com.wayqui.transaq.api.model.TransactionStatusRequest;
+import com.wayqui.transaq.conf.mapper.TransactionMapper;
+import com.wayqui.transaq.dto.TransactionChannel;
+import com.wayqui.transaq.dto.TransactionResultDto;
+import com.wayqui.transaq.dto.TransactionStatusDto;
+import com.wayqui.transaq.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class TransactionControllerImpl implements TransactionController {
 
     @Autowired
-    private TransactionServiceImpl transactionService;
+    private TransactionService transactionService;
 
     @Override
     public Response createTransaction(TransactionRequest transaction) {
-        TransactionResponse response;
+
+        TransactionResultDto response;
 
         List<String> validationErrors = transactionService.validate(transaction);
         if (validationErrors.isEmpty()) {
-            response = transactionService.createTransaction(transaction);
+
+            response = transactionService.createTransaction(
+                    TransactionMapper.INSTANCE.requestToDto(transaction));
         } else {
             return Response.status(Response.Status.BAD_REQUEST).entity(validationErrors).build();
         }
@@ -45,11 +53,12 @@ public class TransactionControllerImpl implements TransactionController {
 
     @Override
     public Response obtainTransactionStatus(TransactionStatusRequest transactionStatus) {
-        TransactionStatusResponse response;
+        Optional<TransactionStatusDto> response;
 
         List<String> validationErrors = transactionService.validate(transactionStatus);
         if (validationErrors.isEmpty()) {
-            response = transactionService.obtainTransactionStatus(transactionStatus);
+            response = transactionService.obtainTransactionStatus(
+                    transactionStatus.getReference(), TransactionChannel.valueOf(transactionStatus.getChannel()));
         } else {
             return Response.status(Response.Status.BAD_REQUEST).entity(validationErrors).build();
         }
