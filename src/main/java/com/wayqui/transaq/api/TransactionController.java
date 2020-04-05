@@ -2,7 +2,10 @@ package com.wayqui.transaq.api;
 
 import com.wayqui.transaq.api.model.TransactionRequest;
 import com.wayqui.transaq.api.model.TransactionStatusRequest;
+import org.springframework.stereotype.Component;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
