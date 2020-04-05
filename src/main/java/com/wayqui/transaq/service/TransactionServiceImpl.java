@@ -98,8 +98,14 @@ public class TransactionServiceImpl implements TransactionService {
             TransactionDto transaction = result.get();
 
             if (transaction.getDate().isBefore(Instant.now())) {
+                if (channel.equals(TransactionChannel.INTERNAL)) {
+                    status.setAmount(transaction.getAmount());
+                    status.setFee(transaction.getFee());
+                } else {
+                    status.setAmount(transaction.getAmount() - transaction.getFee());
+                }
+
                 status.setStatus(TransactionStatus.SETTLED);
-                status.setAmount(transaction.getAmount() - transaction.getFee());
             }
         }
 

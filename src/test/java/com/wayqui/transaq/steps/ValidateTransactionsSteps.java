@@ -47,7 +47,7 @@ public class ValidateTransactionsSteps implements En {
                     .fee(-35.5).build();
         });
 
-        When("^I check the status from (.+)$", (String channel) -> {
+        When("^I check the status from (.+) channel$", (String channel) -> {
             result = transactionService.obtainTransactionStatus(
                     unregisteredTransac.getReference(), TransactionChannel.valueOf(channel));
         });
@@ -77,13 +77,23 @@ public class ValidateTransactionsSteps implements En {
         });
 
         And("^the transaction date is before today$", () -> {
-
+            Assert.assertTrue(registeredTransac.getDate().isBefore(Instant.now()));
         });
 
         And("^the amount substracting the fee$", () -> {
             log.info("Amout - fee: "+ result.get().getAmount());
             Assert.assertNull(result.get().getFee());
             Assert.assertEquals(result.get().getAmount(), registeredTransac.getAmount() - registeredTransac.getFee(), 0.001);
+        });
+
+        And("^the amount$", () -> {
+            Assert.assertNotNull(result.get().getAmount());
+            Assert.assertEquals(result.get().getAmount(), registeredTransac.getAmount(), 0.001);
+        });
+
+        And("^the fee$", () -> {
+            Assert.assertNotNull(result.get().getFee());
+            Assert.assertEquals(result.get().getFee(), registeredTransac.getFee(), 0.001);
         });
 
 
