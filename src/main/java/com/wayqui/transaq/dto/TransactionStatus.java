@@ -2,7 +2,7 @@ package com.wayqui.transaq.dto;
 
 public enum TransactionStatus {
     PENDING("PENDING"),
-    SETTLE("SETTLE"),
+    SETTLED("SETTLED"),
     FUTURE("SETTLE"),
     INVALID("INVALID");
 

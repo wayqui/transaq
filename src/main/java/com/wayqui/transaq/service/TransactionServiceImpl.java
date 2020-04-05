@@ -8,43 +8,44 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
+import java.time.Instant;
 import java.util.*;
 
 @Service
 public class TransactionServiceImpl implements TransactionService {
 
-    private static final List<TransactionDto> transactions = Arrays.asList(
+    private static List<TransactionDto> transactions = new ArrayList<>(Arrays.asList(
             TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES9621005463714895928752")
-                    .amount(2850.30).date(new Date())
+                    .amount(2850.30).date(Instant.now())
                     .description("Salary for april 2020")
                     .fee(-35.5).build(),
             TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES9621005463714895928752")
-                    .amount(-153.00).date(new Date())
+                    .amount(-153.00).date(Instant.now())
                     .description("Water bill")
                     .fee(8.7).build(),
             TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES9321006241817383882283")
-                    .amount(-60.0).date(new Date())
+                    .amount(-60.0).date(Instant.now())
                     .description("Rent for april 2020")
                     .fee(3.5).build(),
             TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES2530044816479877682687")
-                    .amount(-134.43).date(new Date())
+                    .amount(-134.43).date(Instant.now())
                     .description("Internet receipt")
                     .fee(3.5).build(),
             TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES1821003151618627798236")
-                    .amount(-77.80).date(new Date())
+                    .amount(-77.80).date(Instant.now())
                     .description("Car insurance")
                     .fee(13.0).build()
-    );
+    ));
 
     @Override
     public <I> List<String> validate(I input) {
@@ -67,14 +68,20 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public TransactionResultDto createTransaction(TransactionDto transaction) {
 
+        if (transaction.getReference() == null) {
+            transaction.setReference(UUID.randomUUID().toString());
+        }
+
         Optional<TransactionDto> found = transactions.stream()
                 .filter(t -> t.getReference().equalsIgnoreCase(transaction.getReference())).findFirst();
 
         if (!found.isPresent()) {
             transactions.add(transaction);
+            return new TransactionResultDto(true, Optional.of(transaction));
+        } else {
+            return new TransactionResultDto(false, found);
         }
 
-        return null;
     }
 
     @Override
@@ -85,10 +92,15 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public Optional<TransactionStatusDto> obtainTransactionStatus(String reference, TransactionChannel channel) {
 
-        TransactionStatusDto status = new TransactionStatusDto(reference, TransactionStatus.INVALID);
+        TransactionStatusDto status = TransactionStatusDto.builder().reference(reference).status(TransactionStatus.INVALID).build();
         Optional<TransactionDto> result = transactions.stream().filter(t -> t.getReference().equalsIgnoreCase(reference)).findFirst();
         if (result.isPresent()) {
-            // TODO implement login when is present
+            TransactionDto transaction = result.get();
+
+            if (transaction.getDate().isBefore(Instant.now())) {
+                status.setStatus(TransactionStatus.SETTLED);
+                status.setAmount(transaction.getAmount() - transaction.getFee());
+            }
         }
 
         return Optional.of(status);

@@ -3,11 +3,9 @@ package com.wayqui.transaq.api.model;
 import com.wayqui.transaq.conf.validator.NotZero;
 import lombok.*;
 
-import javax.validation.constraints.NegativeOrZero;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Date;
+import java.time.Instant;
 
 @Builder
 @Getter
@@ -22,7 +20,7 @@ public class TransactionRequest {
     @NotBlank(message = "account_iban cannot be empty")
     private String account_iban;
 
-    private Date date;
+    private Instant date;
 
     @NotNull(message = "amount cannot be null")
     @NotZero(message = "amount cannot be zero")
