@@ -9,6 +9,7 @@ import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -97,7 +98,12 @@ public class TransactionServiceImpl implements TransactionService {
         if (result.isPresent()) {
             TransactionDto transaction = result.get();
 
-            if (transaction.getDate().isBefore(Instant.now())) {
+            Instant transactionDate = transaction.getDate().truncatedTo(ChronoUnit.DAYS);
+            Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
+
+
+            if (transactionDate.isBefore(today)) {
+
                 if (channel.equals(TransactionChannel.INTERNAL)) {
                     status.setAmount(transaction.getAmount());
                     status.setFee(transaction.getFee());
@@ -106,6 +112,17 @@ public class TransactionServiceImpl implements TransactionService {
                 }
 
                 status.setStatus(TransactionStatus.SETTLED);
+            } else if (transactionDate.isAfter(today)) {
+
+            } else {
+                if (channel.equals(TransactionChannel.INTERNAL)) {
+                    status.setAmount(transaction.getAmount());
+                    status.setFee(transaction.getFee());
+                } else {
+                    status.setAmount(transaction.getAmount() - transaction.getFee());
+                }
+
+                status.setStatus(TransactionStatus.PENDING);
             }
         }
 

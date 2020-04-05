@@ -35,9 +35,6 @@ public class ValidateTransactionsSteps implements En {
 
     public ValidateTransactionsSteps() {
 
-        /*
-         * Scenario: Verify a nonexistent transaction
-         */
         Given("A transaction that is not stored in our system", () -> {
             unregisteredTransac = TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
@@ -59,25 +56,23 @@ public class ValidateTransactionsSteps implements En {
         });
 
 
-        /*
-         * Verify from a client or ATM a transaction stored before today in our system
-         */
+
 
         Given("^A transaction that is stored in our system$", () -> {
 
             unregisteredTransac = TransactionDto.builder()
                     .reference(UUID.randomUUID().toString())
                     .account_iban("ES9621005463714895928752")
-                    .amount(2850.30).date(Instant.now().minus(1, ChronoUnit.DAYS))
+                    .amount(2850.30)
+                    .date(Instant.now().minus(1, ChronoUnit.DAYS))
                     .description("Salary for april 2020")
                     .fee(-35.5).build();
-
-            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
-            registeredTransac = result.getTransactionDto().get();
         });
 
         And("^the transaction date is before today$", () -> {
-            Assert.assertTrue(registeredTransac.getDate().isBefore(Instant.now()));
+            unregisteredTransac.setDate(Instant.now().minus(1, ChronoUnit.DAYS));
+            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
+            registeredTransac = result.getTransactionDto().get();
         });
 
         And("^the amount substracting the fee$", () -> {
@@ -94,6 +89,12 @@ public class ValidateTransactionsSteps implements En {
         And("^the fee$", () -> {
             Assert.assertNotNull(result.get().getFee());
             Assert.assertEquals(result.get().getFee(), registeredTransac.getFee(), 0.001);
+        });
+
+        And("^the transaction date is equals to today$", () -> {
+            unregisteredTransac.setDate(Instant.now());
+            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
+            registeredTransac = result.getTransactionDto().get();
         });
 
 
