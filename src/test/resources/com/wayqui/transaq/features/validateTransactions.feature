@@ -55,3 +55,14 @@ Feature: Transaction validation from different channels
     When I check the status from CLIENT channel
     Then The system returns the status 'FUTURE'
     And the amount substracting the fee
+
+
+
+  Scenario: Verify from an ATM a transaction stored whose data is greater than today in our system
+
+    Given A transaction that is stored in our system
+    And the transaction date is greater than today
+    When I check the status from ATM channel
+    Then The system returns the status 'PENDING'
+    And the amount substracting the fee
+

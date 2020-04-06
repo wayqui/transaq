@@ -115,9 +115,14 @@ public class TransactionServiceImpl implements TransactionService {
 
                 if (channel.equals(TransactionChannel.CLIENT)) {
                     status.setAmount(transaction.getAmount() - transaction.getFee());
+
+                    status.setStatus(TransactionStatus.FUTURE);
+                } else if (channel.equals(TransactionChannel.ATM)) {
+                    status.setAmount(transaction.getAmount() - transaction.getFee());
+
+                    status.setStatus(TransactionStatus.PENDING);
                 }
 
-                status.setStatus(TransactionStatus.FUTURE);
 
             } else {
                 if (channel.equals(TransactionChannel.INTERNAL)) {
