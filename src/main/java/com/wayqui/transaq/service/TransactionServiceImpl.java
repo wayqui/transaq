@@ -101,37 +101,21 @@ public class TransactionServiceImpl implements TransactionService {
             Instant transactionDate = transaction.getDate().truncatedTo(ChronoUnit.DAYS);
             Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
 
+            if (channel.equals(TransactionChannel.INTERNAL)) {
+                status.setAmount(transaction.getAmount());
+                status.setFee(transaction.getFee());
+            } else {
+                status.setAmount(transaction.getAmount() - transaction.getFee());
+            }
+
             if (transactionDate.isBefore(today)) {
-
-                if (channel.equals(TransactionChannel.INTERNAL)) {
-                    status.setAmount(transaction.getAmount());
-                    status.setFee(transaction.getFee());
-                } else {
-                    status.setAmount(transaction.getAmount() - transaction.getFee());
-                }
-
                 status.setStatus(TransactionStatus.SETTLED);
             } else if (transactionDate.isAfter(today)) {
-
-                if (channel.equals(TransactionChannel.CLIENT)) {
-                    status.setAmount(transaction.getAmount() - transaction.getFee());
-
-                    status.setStatus(TransactionStatus.FUTURE);
-                } else if (channel.equals(TransactionChannel.ATM)) {
-                    status.setAmount(transaction.getAmount() - transaction.getFee());
-
+                status.setStatus(TransactionStatus.FUTURE);
+                if (channel.equals(TransactionChannel.ATM)) {
                     status.setStatus(TransactionStatus.PENDING);
                 }
-
-
             } else {
-                if (channel.equals(TransactionChannel.INTERNAL)) {
-                    status.setAmount(transaction.getAmount());
-                    status.setFee(transaction.getFee());
-                } else {
-                    status.setAmount(transaction.getAmount() - transaction.getFee());
-                }
-
                 status.setStatus(TransactionStatus.PENDING);
             }
         }
