@@ -32,7 +32,7 @@ public class ValidateTransactionsSteps implements En {
 
         Given("A transaction that is not stored in our system", () -> {
             unregisteredTransac = TransactionDto.builder()
-                    .account_iban("ES9621005463714895928752")
+                    .iban("ES9621005463714895928752")
                     .amount(2850.30).date(Instant.now())
                     .description("Salary for april 2020")
                     .fee(-35.5).build();
@@ -51,7 +51,7 @@ public class ValidateTransactionsSteps implements En {
 
         Given("^A transaction that is stored in our system$", () -> {
             unregisteredTransac = TransactionDto.builder()
-                    .account_iban("ES9621005463714895928752")
+                    .iban("ES9621005463714895928752")
                     .amount(2850.30)
                     .description("Salary for april 2020")
                     .fee(-35.5).build();

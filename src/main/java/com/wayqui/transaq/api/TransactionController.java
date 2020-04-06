@@ -2,10 +2,7 @@ package com.wayqui.transaq.api;
 
 import com.wayqui.transaq.api.model.TransactionRequest;
 import com.wayqui.transaq.api.model.TransactionStatusRequest;
-import org.springframework.stereotype.Component;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
@@ -14,6 +11,7 @@ public interface TransactionController {
 
     @POST
     @Consumes("application/json")
+    @Produces("application/json")
     public Response createTransaction(TransactionRequest transaction);
 
     @GET
@@ -24,5 +22,6 @@ public interface TransactionController {
     @POST
     @Path("/status")
     @Consumes("application/json")
+    @Produces("application/json")
     public Response obtainTransactionStatus(TransactionStatusRequest transactionStatus);
 }

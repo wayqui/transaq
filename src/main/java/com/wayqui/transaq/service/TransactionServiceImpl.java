@@ -1,67 +1,41 @@
 package com.wayqui.transaq.service;
 
+import com.wayqui.transaq.dao.TransactionDao;
 import com.wayqui.transaq.dto.TransactionChannel;
 import com.wayqui.transaq.dto.TransactionDto;
 import com.wayqui.transaq.dto.TransactionStatus;
 import com.wayqui.transaq.dto.TransactionStatusDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class TransactionServiceImpl extends TransactionService {
 
-    private static List<TransactionDto> transactions = new ArrayList<>(Arrays.asList(
-            TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
-                    .account_iban("ES9621005463714895928752")
-                    .amount(2850.30).date(Instant.now())
-                    .description("Salary for april 2020")
-                    .fee(-35.5).build(),
-            TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
-                    .account_iban("ES9621005463714895928752")
-                    .amount(-153.00).date(Instant.now())
-                    .description("Water bill")
-                    .fee(8.7).build(),
-            TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
-                    .account_iban("ES9321006241817383882283")
-                    .amount(-60.0).date(Instant.now())
-                    .description("Rent for april 2020")
-                    .fee(3.5).build(),
-            TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
-                    .account_iban("ES2530044816479877682687")
-                    .amount(-134.43).date(Instant.now())
-                    .description("Internet receipt")
-                    .fee(3.5).build(),
-            TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
-                    .account_iban("ES1821003151618627798236")
-                    .amount(-77.80).date(Instant.now())
-                    .description("Car insurance")
-                    .fee(13.0).build()
-    ));
+    @Autowired
+    TransactionDao transactionDao;
 
     @Override
     public TransactionDto createTransaction(TransactionDto transaction) {
 
-        Optional<TransactionDto> existingTransaction = Optional.empty();
-
+        List<TransactionDto> transactionsByReference = new ArrayList<>();
         if (transaction.getReference() != null) {
-            existingTransaction = transactions.stream()
-                    .filter(t -> t.getReference().equalsIgnoreCase(transaction.getReference())).findFirst();
+            transactionsByReference = transactionDao.findByReference(transaction.getReference());
         } else {
             transaction.setReference(UUID.randomUUID().toString());
         }
 
-        if (!existingTransaction.isPresent()) {
-            transactions.add(transaction);
-            return transaction;
+        if (transactionsByReference.isEmpty()) {
+
+            // TODO Verify if the total amount of the account is greater than zero with that transactioin
+            return transactionDao.save(transaction);
         } else {
             // ASSUMPTION: Since it's not mentioned what to do in case of the transaction reference exist
             // I'm rejecting that request
@@ -73,32 +47,36 @@ public class TransactionServiceImpl extends TransactionService {
 
     @Override
     public List<TransactionDto> findTransactions(String account_iban, Boolean ascending) {
-        List<TransactionDto> filtered = transactions.stream()
-                .filter(t -> t.getAccount_iban().equalsIgnoreCase(account_iban))
-                .collect(Collectors.toList());
+
+        List<TransactionDto> transactionsByIban = transactionDao.findByIban(account_iban);
+
+        // FIXME Sort in the query
 
         if (ascending != null) {
             if (ascending) {
-                return filtered.stream()
+                return transactionsByIban.stream()
                         .sorted(Comparator.comparingDouble(TransactionDto::getAmount))
                         .collect(Collectors.toList());
             } else {
-                return filtered.stream()
+                return transactionsByIban.stream()
                         .sorted(Comparator.comparingDouble(TransactionDto::getAmount).reversed())
                         .collect(Collectors.toList());
             }
         }
 
-        return filtered;
+        return transactionsByIban;
     }
 
     @Override
     public TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel) {
 
-        TransactionStatusDto status = TransactionStatusDto.builder().reference(reference).status(TransactionStatus.INVALID).build();
-        Optional<TransactionDto> result = transactions.stream().filter(t -> t.getReference().equalsIgnoreCase(reference)).findFirst();
-        if (result.isPresent()) {
-            TransactionDto transaction = result.get();
+        List<TransactionDto> transactionsByReference = transactionDao.findByReference(reference);
+
+        TransactionStatusDto status = TransactionStatusDto.builder()
+                .reference(reference).status(TransactionStatus.INVALID).build();
+
+        if (transactionsByReference.size() == 1) {
+            TransactionDto transaction = transactionsByReference.iterator().next();
 
             Instant transactionDate = transaction.getDate().truncatedTo(ChronoUnit.DAYS);
             Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);

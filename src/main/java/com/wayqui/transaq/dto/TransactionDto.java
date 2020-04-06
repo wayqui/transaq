@@ -11,7 +11,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class TransactionDto {
     private String reference;
-    private String account_iban;
+    private String iban;
     private Instant date;
     private Double amount;
     private Double fee;
