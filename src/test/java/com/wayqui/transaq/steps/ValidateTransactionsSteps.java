@@ -2,7 +2,6 @@ package com.wayqui.transaq.steps;
 
 import com.wayqui.transaq.dto.TransactionChannel;
 import com.wayqui.transaq.dto.TransactionDto;
-import com.wayqui.transaq.dto.TransactionResultDto;
 import com.wayqui.transaq.dto.TransactionStatusDto;
 import com.wayqui.transaq.service.TransactionService;
 import io.cucumber.java8.En;
@@ -14,7 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 
 @SpringBootTest
 public class ValidateTransactionsSteps implements En {
@@ -28,7 +26,7 @@ public class ValidateTransactionsSteps implements En {
 
     private TransactionDto registeredTransac;
 
-    private Optional<TransactionStatusDto> result;
+    private TransactionStatusDto result;
 
     public ValidateTransactionsSteps() {
 
@@ -46,9 +44,8 @@ public class ValidateTransactionsSteps implements En {
         });
 
         Then("The system returns the status {string}", (String string) -> {
-            log.info("Status: "+result.get().getStatus().toString());
-            Assert.assertTrue(result.isPresent());
-            Assert.assertEquals(string, result.get().getStatus().toString());
+            log.info("Status: "+result.getStatus().toString());
+            Assert.assertEquals(string, result.getStatus().toString());
         });
 
 
@@ -62,36 +59,33 @@ public class ValidateTransactionsSteps implements En {
 
         And("^the transaction date is before today$", () -> {
             unregisteredTransac.setDate(Instant.now().minus(1, ChronoUnit.DAYS));
-            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
-            registeredTransac = result.getTransactionDto().get();
+            registeredTransac = transactionService.createTransaction(unregisteredTransac);
         });
 
         And("^the transaction date is equals to today$", () -> {
             unregisteredTransac.setDate(Instant.now());
-            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
-            registeredTransac = result.getTransactionDto().get();
+            registeredTransac = transactionService.createTransaction(unregisteredTransac);
         });
 
         And("^the transaction date is greater than today$", () -> {
             unregisteredTransac.setDate(Instant.now().plus(1, ChronoUnit.DAYS));
-            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
-            registeredTransac = result.getTransactionDto().get();
+            registeredTransac = transactionService.createTransaction(unregisteredTransac);
         });
 
         And("^the amount substracting the fee$", () -> {
-            log.info("Amout - fee: "+ result.get().getAmount());
-            Assert.assertNull(result.get().getFee());
-            Assert.assertEquals(result.get().getAmount(), registeredTransac.getAmount() - registeredTransac.getFee(), 0.001);
+            log.info("Amout - fee: "+ result.getAmount());
+            Assert.assertNull(result.getFee());
+            Assert.assertEquals(result.getAmount(), registeredTransac.getAmount() - registeredTransac.getFee(), 0.001);
         });
 
         And("^the amount$", () -> {
-            Assert.assertNotNull(result.get().getAmount());
-            Assert.assertEquals(result.get().getAmount(), registeredTransac.getAmount(), 0.001);
+            Assert.assertNotNull(result.getAmount());
+            Assert.assertEquals(result.getAmount(), registeredTransac.getAmount(), 0.001);
         });
 
         And("^the fee$", () -> {
-            Assert.assertNotNull(result.get().getFee());
-            Assert.assertEquals(result.get().getFee(), registeredTransac.getFee(), 0.001);
+            Assert.assertNotNull(result.getFee());
+            Assert.assertEquals(result.getFee(), registeredTransac.getFee(), 0.001);
         });
 
 

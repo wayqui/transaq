@@ -1,21 +1,37 @@
 package com.wayqui.transaq.service;
 
-import com.wayqui.transaq.api.model.TransactionResponse;
 import com.wayqui.transaq.dto.TransactionChannel;
 import com.wayqui.transaq.dto.TransactionDto;
-import com.wayqui.transaq.dto.TransactionResultDto;
 import com.wayqui.transaq.dto.TransactionStatusDto;
 
-import java.util.List;
-import java.util.Optional;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import java.util.*;
 
-public interface TransactionService {
+public abstract class TransactionService {
 
-    <I> List<String> validate(I input);
+    public <I> List<String> validate(I input) {
+        List<String> validationErrors = new ArrayList<>();
+        Set<ConstraintViolation<I>> violations = new HashSet<>();
 
-    TransactionResultDto createTransaction(TransactionDto transaction);
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
 
-    TransactionResponse findTransaction(String account_iban, Boolean ascending);
+        if (input != null) {
+            validator.validate(input).stream().forEach(
+                    violation -> validationErrors.add(violation.getMessage()));
+        } else {
+            validationErrors.add("Input value must not be null");
+        }
 
-    Optional<TransactionStatusDto> obtainTransactionStatus(String reference, TransactionChannel channel);
+        return validationErrors;
+    }
+
+    public abstract TransactionDto createTransaction(TransactionDto transaction);
+
+    public abstract List<TransactionDto> findTransactions(String account_iban, Boolean ascending);
+
+    public abstract TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel);
 }

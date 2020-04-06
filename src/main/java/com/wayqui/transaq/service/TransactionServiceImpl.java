@@ -1,19 +1,18 @@
 package com.wayqui.transaq.service;
 
-import com.wayqui.transaq.api.model.TransactionResponse;
-import com.wayqui.transaq.dto.*;
+import com.wayqui.transaq.dto.TransactionChannel;
+import com.wayqui.transaq.dto.TransactionDto;
+import com.wayqui.transaq.dto.TransactionStatus;
+import com.wayqui.transaq.dto.TransactionStatusDto;
 import org.springframework.stereotype.Service;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
-public class TransactionServiceImpl implements TransactionService {
+public class TransactionServiceImpl extends TransactionService {
 
     private static List<TransactionDto> transactions = new ArrayList<>(Arrays.asList(
             TransactionDto.builder()
@@ -49,49 +48,52 @@ public class TransactionServiceImpl implements TransactionService {
     ));
 
     @Override
-    public <I> List<String> validate(I input) {
-        List<String> validationErrors = new ArrayList<>();
-        Set<ConstraintViolation<I>> violations = new HashSet<>();
+    public TransactionDto createTransaction(TransactionDto transaction) {
 
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
+        Optional<TransactionDto> existingTransaction = Optional.empty();
 
-        if (input != null) {
-            validator.validate(input).stream().forEach(
-                    violation -> validationErrors.add(violation.getMessage()));
+        if (transaction.getReference() != null) {
+            existingTransaction = transactions.stream()
+                    .filter(t -> t.getReference().equalsIgnoreCase(transaction.getReference())).findFirst();
         } else {
-            validationErrors.add("Input value must not be null");
-        }
-
-        return validationErrors;
-    }
-
-    @Override
-    public TransactionResultDto createTransaction(TransactionDto transaction) {
-
-        if (transaction.getReference() == null) {
             transaction.setReference(UUID.randomUUID().toString());
         }
 
-        Optional<TransactionDto> found = transactions.stream()
-                .filter(t -> t.getReference().equalsIgnoreCase(transaction.getReference())).findFirst();
-
-        if (!found.isPresent()) {
+        if (!existingTransaction.isPresent()) {
             transactions.add(transaction);
-            return new TransactionResultDto(true, Optional.of(transaction));
+            return transaction;
         } else {
-            return new TransactionResultDto(false, found);
+            // ASSUMPTION: Since it's not mentioned what to do in case of the transaction reference exist
+            // I'm rejecting that request
+
+            // FIXME improve error handling
+            throw new RuntimeException("The transaction with reference id "+ transaction.getReference() + " is already registered");
+        }
+    }
+
+    @Override
+    public List<TransactionDto> findTransactions(String account_iban, Boolean ascending) {
+        List<TransactionDto> filtered = transactions.stream()
+                .filter(t -> t.getAccount_iban().equalsIgnoreCase(account_iban))
+                .collect(Collectors.toList());
+
+        if (ascending != null) {
+            if (ascending) {
+                return filtered.stream()
+                        .sorted(Comparator.comparingDouble(TransactionDto::getAmount))
+                        .collect(Collectors.toList());
+            } else {
+                return filtered.stream()
+                        .sorted(Comparator.comparingDouble(TransactionDto::getAmount).reversed())
+                        .collect(Collectors.toList());
+            }
         }
 
+        return filtered;
     }
 
     @Override
-    public TransactionResponse findTransaction(String account_iban, Boolean ascending) {
-        return null;
-    }
-
-    @Override
-    public Optional<TransactionStatusDto> obtainTransactionStatus(String reference, TransactionChannel channel) {
+    public TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel) {
 
         TransactionStatusDto status = TransactionStatusDto.builder().reference(reference).status(TransactionStatus.INVALID).build();
         Optional<TransactionDto> result = transactions.stream().filter(t -> t.getReference().equalsIgnoreCase(reference)).findFirst();
@@ -120,6 +122,6 @@ public class TransactionServiceImpl implements TransactionService {
             }
         }
 
-        return Optional.of(status);
+        return status;
     }
 }

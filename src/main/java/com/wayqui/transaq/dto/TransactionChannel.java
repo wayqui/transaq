@@ -10,6 +10,4 @@ public enum TransactionChannel {
     TransactionChannel(String channel) {
         this.channel = channel;
     }
-
-
 }
