@@ -36,6 +36,7 @@ Feature: Transaction validation from different channels
 
 
   Scenario Outline: Verify from a client or ATM a transaction stored today in our system
+
     Given A transaction that is stored in our system
     And the transaction date is equals to today
     When I check the status from <Channel> channel
@@ -45,3 +46,12 @@ Feature: Transaction validation from different channels
       | Channel  |
       | CLIENT   |
       | ATM      |
+
+
+  Scenario: Verify from a client a transaction stored whose data is greater than today in our system
+
+    Given A transaction that is stored in our system
+    And the transaction date is greater than today
+    When I check the status from CLIENT channel
+    Then The system returns the status 'FUTURE'
+    And the amount substracting the fee

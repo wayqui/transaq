@@ -101,7 +101,6 @@ public class TransactionServiceImpl implements TransactionService {
             Instant transactionDate = transaction.getDate().truncatedTo(ChronoUnit.DAYS);
             Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
 
-
             if (transactionDate.isBefore(today)) {
 
                 if (channel.equals(TransactionChannel.INTERNAL)) {
@@ -113,6 +112,12 @@ public class TransactionServiceImpl implements TransactionService {
 
                 status.setStatus(TransactionStatus.SETTLED);
             } else if (transactionDate.isAfter(today)) {
+
+                if (channel.equals(TransactionChannel.CLIENT)) {
+                    status.setAmount(transaction.getAmount() - transaction.getFee());
+                }
+
+                status.setStatus(TransactionStatus.FUTURE);
 
             } else {
                 if (channel.equals(TransactionChannel.INTERNAL)) {

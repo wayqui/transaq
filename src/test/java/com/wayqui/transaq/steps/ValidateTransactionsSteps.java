@@ -13,11 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.Optional;
-import java.util.UUID;
 
 @SpringBootTest
 public class ValidateTransactionsSteps implements En {
@@ -37,7 +34,6 @@ public class ValidateTransactionsSteps implements En {
 
         Given("A transaction that is not stored in our system", () -> {
             unregisteredTransac = TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
                     .account_iban("ES9621005463714895928752")
                     .amount(2850.30).date(Instant.now())
                     .description("Salary for april 2020")
@@ -56,21 +52,28 @@ public class ValidateTransactionsSteps implements En {
         });
 
 
-
-
         Given("^A transaction that is stored in our system$", () -> {
-
             unregisteredTransac = TransactionDto.builder()
-                    .reference(UUID.randomUUID().toString())
                     .account_iban("ES9621005463714895928752")
                     .amount(2850.30)
-                    .date(Instant.now().minus(1, ChronoUnit.DAYS))
                     .description("Salary for april 2020")
                     .fee(-35.5).build();
         });
 
         And("^the transaction date is before today$", () -> {
             unregisteredTransac.setDate(Instant.now().minus(1, ChronoUnit.DAYS));
+            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
+            registeredTransac = result.getTransactionDto().get();
+        });
+
+        And("^the transaction date is equals to today$", () -> {
+            unregisteredTransac.setDate(Instant.now());
+            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
+            registeredTransac = result.getTransactionDto().get();
+        });
+
+        And("^the transaction date is greater than today$", () -> {
+            unregisteredTransac.setDate(Instant.now().plus(1, ChronoUnit.DAYS));
             TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
             registeredTransac = result.getTransactionDto().get();
         });
@@ -89,12 +92,6 @@ public class ValidateTransactionsSteps implements En {
         And("^the fee$", () -> {
             Assert.assertNotNull(result.get().getFee());
             Assert.assertEquals(result.get().getFee(), registeredTransac.getFee(), 0.001);
-        });
-
-        And("^the transaction date is equals to today$", () -> {
-            unregisteredTransac.setDate(Instant.now());
-            TransactionResultDto result = transactionService.createTransaction(unregisteredTransac);
-            registeredTransac = result.getTransactionDto().get();
         });
 
 
