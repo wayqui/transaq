@@ -41,3 +41,7 @@ From command line you should type the following command to execute acceptance te
 ```bash
 mvn test (Working on it...)
 ```
+
+## Business requirements and assumptions
+
+The business functionality for this service is very clear and well detailed in the documentation (both in Cucumber scenarios and documentation provided); however, there are some aspects of it that, during development and testing, sounded ambiguous to me, that's why I labeled those issues in the code with comments including the word "ASSUMPTION" so, if you search this keyword you'll find the places where I assumed certain things.
