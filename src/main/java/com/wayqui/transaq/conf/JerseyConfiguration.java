@@ -13,6 +13,7 @@ public class JerseyConfiguration extends ResourceConfig {
 
     @PostConstruct
     public void init() {
+        packages("com.wayqui.transaq.exception");
         register(TransactionController.class);
     }
 }

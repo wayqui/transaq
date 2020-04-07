@@ -24,7 +24,6 @@ public class TransactionDaoImpl implements TransactionDao {
     public List<TransactionDto> findByIban(String account_iban) {
         List<Transaction> transactionsByReference = repository.findByIban(account_iban);
 
-        // FIXME Sort in the query
         return TransactionMapper.INSTANCE.entitiesToDtos(transactionsByReference);
     }
 

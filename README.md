@@ -39,9 +39,21 @@ spring.datasource.url = jdbc:h2:file:/opt/data/transactiondb
 From command line you should type the following command to execute acceptance tests
 
 ```bash
-mvn test (Working on it...)
+mvn test
+```
+
+The command from above executes all scenarios implemented. 
+
+However, I have tagged the test in two groups so far, one with the scenarios related to the status **validation** and the other related with the **creation** of transactions; if you want to launch one or another just execute the following command:
+
+```bash
+mvn test -Dcucumber.filter.tags="@validation"
+```
+Or 
+```bash
+mvn test -Dcucumber.filter.tags="@creation"
 ```
 
 ## Business requirements and assumptions
 
-The business functionality for this service is very clear and well detailed in the documentation (both in Cucumber scenarios and documentation provided); however, there are some aspects of it that, during development and testing, sounded ambiguous to me, that's why I labeled those issues in the code with comments including the word "ASSUMPTION" so, if you search this keyword you'll find the places where I assumed certain things.
+The business functionality for this service is very clear and well detailed in the documentation (both in Cucumber scenarios and documentation provided); however, there are some aspects of it that, during development and testing, sounded ambiguous to me, that's why I labeled those issues in the code with comments including the word ***ASSUMPTION*** so, if you search this keyword, you'll find the places where I assumed certain things.
