@@ -8,68 +8,72 @@ import com.wayqui.transaq.conf.mapper.TransactionMapper;
 import com.wayqui.transaq.dto.TransactionChannel;
 import com.wayqui.transaq.dto.TransactionDto;
 import com.wayqui.transaq.dto.TransactionStatusDto;
+import com.wayqui.transaq.dto.ValidationDto;
 import com.wayqui.transaq.exception.BusinessException;
 import com.wayqui.transaq.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.ws.rs.core.Response;
+import java.time.Instant;
 import java.util.List;
 
 @Component
 public class TransactionControllerImpl implements TransactionController {
 
     @Autowired
-    private TransactionService transactionService;
+    private TransactionService service;
 
     @Override
-    public Response createTransaction(TransactionRequest transaction) {
+    public Response createTransaction(TransactionRequest transaction) throws BusinessException {
 
-        ApiErrorResponse validationError = transactionService.validate(transaction);
+        ValidationDto validation = service.validate(transaction);
 
-        if (validationError.getErrors().isEmpty()) {
-            TransactionDto response = transactionService.createTransaction(
-                    TransactionMapper.INSTANCE.requestToDto(transaction));
+        if (!validation.getErrors().isEmpty())
+            return this.generateErrorResponse(validation, Response.Status.BAD_REQUEST);
 
-            return Response.status(Response.Status.CREATED)
-                    .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
-        } else {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(validationError).build();
-        }
+        TransactionDto response = service.createTransaction(
+                TransactionMapper.INSTANCE.requestToDto(transaction));
+
+        return Response.status(Response.Status.CREATED)
+                .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
     }
 
     @Override
     public Response findTransaction(String account_iban, Boolean ascending) {
 
-        ApiErrorResponse validationError = transactionService.validate(new FindTransactionRequest(account_iban, ascending));
+        ValidationDto validation = service.validate(new FindTransactionRequest(account_iban, ascending));
 
-        if (validationError.getErrors().isEmpty()) {
-            List<TransactionDto> transactions = transactionService.findTransactions(
-                    account_iban, ascending);
+        if (!validation.getErrors().isEmpty())
+            return this.generateErrorResponse(validation, Response.Status.BAD_REQUEST);
 
-            return Response.status(Response.Status.OK).entity(
-                    TransactionMapper.INSTANCE.dtosToResponses(transactions)).build();
-        } else {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(validationError).build();
-        }
+        List<TransactionDto> transactions = service.findTransactions(account_iban, ascending);
+
+        return Response.status(Response.Status.OK).entity(
+                TransactionMapper.INSTANCE.dtosToResponses(transactions)).build();
     }
 
     @Override
     public Response obtainTransactionStatus(TransactionStatusRequest transactionStatus) {
 
-        ApiErrorResponse validationError = transactionService.validate(transactionStatus);
+        ValidationDto validation = service.validate(transactionStatus);
 
-        if (validationError.getErrors().isEmpty()) {
-            TransactionStatusDto status = transactionService.obtainTransactionStatus(
-                    transactionStatus.getReference(), TransactionChannel.valueOf(transactionStatus.getChannel()));
+        if (!validation.getErrors().isEmpty())
+            return this.generateErrorResponse(validation, Response.Status.BAD_REQUEST);
 
-            return Response.status(Response.Status.OK).entity(
-                    TransactionMapper.INSTANCE.dtoToResponse(status)).build();
-        } else {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(validationError).build();
-        }
+        TransactionStatusDto status = service.obtainTransactionStatus(
+                transactionStatus.getReference(), TransactionChannel.valueOf(transactionStatus.getChannel()));
+
+        return Response.status(Response.Status.OK).entity(
+                TransactionMapper.INSTANCE.dtoToResponse(status)).build();
+    }
+
+    private Response generateErrorResponse(ValidationDto validationError, Response.Status status) {
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .status(status.getReasonPhrase())
+                .message(validationError.getMessage())
+                .errors(validationError.getErrors())
+                .build();
+        return Response.status(Response.Status.BAD_REQUEST).entity(response).build();
     }
 }

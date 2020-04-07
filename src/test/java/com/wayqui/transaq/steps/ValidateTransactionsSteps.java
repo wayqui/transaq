@@ -5,6 +5,7 @@ import com.wayqui.transaq.api.model.ApiErrorResponse;
 import com.wayqui.transaq.api.model.TransactionRequest;
 import com.wayqui.transaq.api.model.TransactionResponse;
 import com.wayqui.transaq.api.model.TransactionStatusResponse;
+import com.wayqui.transaq.util.TransactionRequestMapper;
 import io.cucumber.java8.En;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -16,10 +17,9 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import javax.validation.constraints.AssertTrue;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,25 +34,23 @@ public class ValidateTransactionsSteps implements En {
     private TestRestTemplate restTemplate;
 
     private TransactionRequest unregisteredTransac;
-
     private TransactionResponse registeredTransac;
-
     private TransactionStatusResponse transactionStatus;
-
     private ResponseEntity<TransactionResponse> createTransacResponse;
-
     private ResponseEntity<ApiErrorResponse> apiErrorresponse;
-
     private String referenceId;
-
     private HttpStatus httpStatusCode;
 
     public ValidateTransactionsSteps() {
+        this.stepsForValidateTransactions();
+        this.stepsForCreateTransactions();
+    }
 
+    private void stepsForValidateTransactions() {
         Given("A transaction that is not stored in our system", () -> {
+            log.info("A transaction that is not stored in our system");
 
             referenceId = UUID.randomUUID().toString();
-
             unregisteredTransac = TransactionRequest.builder()
                     .reference(referenceId)
                     .account_iban("ES9621005463714895928752")
@@ -74,7 +72,7 @@ public class ValidateTransactionsSteps implements En {
         });
 
         Given("^A transaction that is stored in our system$", () -> {
-
+            log.info("A transaction that is stored in our system");
             unregisteredTransac = TransactionRequest.builder()
                     .account_iban("ES9621005463714895928752")
                     .amount(2850.30)
@@ -84,15 +82,23 @@ public class ValidateTransactionsSteps implements En {
         });
 
         And("^the transaction date is before today$", () -> {
+            log.info("the transaction date is before today");
             unregisteredTransac.setDate(Instant.now().minus(1, ChronoUnit.DAYS));
         });
 
         And("^the transaction date is equals to today$", () -> {
+            log.info("the transaction date is equals to today");
             unregisteredTransac.setDate(Instant.now());
         });
 
         And("^the transaction date is greater than today$", () -> {
+            log.info("the transaction date is greater than today");
             unregisteredTransac.setDate(Instant.now().plus(1, ChronoUnit.DAYS));
+        });
+
+        And("^the transaction reference is not informed$", () -> {
+            log.info("the transaction reference is not informed");
+            Assert.assertNull(referenceId);
         });
 
         And("^the amount substracting the fee$", () -> {
@@ -112,6 +118,24 @@ public class ValidateTransactionsSteps implements En {
             Assert.assertNotNull(transactionStatus.getFee());
             Assert.assertEquals(transactionStatus.getFee(), registeredTransac.getFee(), 0.001);
         });
+    }
+
+    private void stepsForCreateTransactions() {
+
+        Given("^the following information for creating a new transaction: (.*), (.+), (.+), (.+) and (.+)$",
+                (String accountiban, String date, String amount, String fee, String description) -> {
+
+            Object [] data = {accountiban, date, amount, fee, description};
+            log.info(MessageFormat.format("the following information for creating new transactions: \n |{0}|{1}|{2}|{3}|{4}|", data));
+
+            unregisteredTransac = TransactionRequest.builder()
+                    .account_iban(accountiban)
+                    .date(Instant.parse(date))
+                    .amount(Double.valueOf(amount))
+                    .fee(Double.valueOf(fee))
+                    .description(description)
+                    .build();
+        });
 
         When("^I persist the transaction in database$", () -> {
             log.info("I persist the transaction in database");
@@ -119,6 +143,16 @@ public class ValidateTransactionsSteps implements En {
             httpStatusCode = createTransacResponse.getStatusCode();
             registeredTransac = createTransacResponse.getBody();
             referenceId = registeredTransac.getReference();
+        });
+
+        Then("The service returns the HTTP status {string}", (String status) -> {
+            log.info("The service returns the HTTP status "+status);
+            assertEquals(status, httpStatusCode.getReasonPhrase());
+        });
+
+        And("^the transaction reference is informed$", () -> {
+            log.info("the transaction reference is informed");
+            Assert.assertNotNull(referenceId);
         });
 
         When("^I try to persist the transaction in database$", () -> {
@@ -132,83 +166,55 @@ public class ValidateTransactionsSteps implements En {
             unregisteredTransac.setReference(null);
         });
 
-        Then("The service returns the HTTP status {string}", (String status) -> {
-            log.info("The service returns the HTTP status "+status);
-            assertEquals(status, httpStatusCode.getReasonPhrase());
-        });
-
-        And("^the transaction reference is informed$", () -> {
-            log.info("the transaction reference is informed");
-            Assert.assertNotNull(referenceId);
-        });
-
-        Given("^the following information for creating a new transaction: (.*), (.*), (.*), (.*) and (.*)$", (String accountiban, String date, String amount, String fee, String description) -> {
-            log.info("the following information for creating new transactions: "+accountiban+" - "+date+" - "+amount+" - "+fee+" - "+description);
-
-            unregisteredTransac = TransactionRequest.builder()
-                    .account_iban(accountiban)
-                    .date(Instant.parse(date))
-                    .amount(Double.valueOf(amount))
-                    .fee(Double.valueOf(fee))
-                    .description(description)
-                    .build();
-
-        });
-        And("^the transaction reference is not informed$", () -> {
-            log.info("the transaction reference is not informed");
-            Assert.assertNull(referenceId);
-        });
-
         And("the error message is {string}", (String error) -> {
             log.info("the error message is "+error);
             Assert.assertEquals(error, apiErrorresponse.getBody().getMessage());
         });
+
         And("with the specific validation error of {string}", (String subError) -> {
             log.info("with the specific validation error of "+subError);
             Assert.assertTrue(apiErrorresponse.getBody().getErrors().stream().anyMatch(error -> error.equalsIgnoreCase(subError)));
         });
     }
 
+    /**
+     * Calling the service using TestRestTemplate client in order to obtain
+     * the transaction's status
+     * @param referenceId the reference
+     * @param channel the channel where the request is coming from
+     * @return the response from the service with its payload
+     */
     private ResponseEntity<TransactionStatusResponse> obtainTransactionStatus(String referenceId, String channel) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("reference", referenceId);
-        map.put("channel", channel);
+        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(referenceId, channel));
 
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(map);
-
-        return this.restTemplate.
-                postForEntity("/rest/transaction/status", payload, TransactionStatusResponse.class);
+        return this.restTemplate.postForEntity("/rest/transaction/status",
+                payload, TransactionStatusResponse.class);
     }
 
+    /**
+     * Calling the service using TestRestTemplate client in order to create
+     * a transaction with the input correctly informed
+     * @param transaction the transaction that will be created on the database
+     * @return the response with the transaction registered on the database
+     */
     private ResponseEntity<TransactionResponse> createTransaction(TransactionRequest transaction) {
+        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(transaction));
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("reference", transaction.getReference());
-        map.put("account_iban", transaction.getAccount_iban());
-        map.put("date", transaction.getDate());
-        map.put("amount", transaction.getAmount());
-        map.put("fee", transaction.getFee());
-        map.put("description", transaction.getDescription());
-
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(map);
-
-        return this.restTemplate.postForEntity(
-                "/rest/transaction", payload, TransactionResponse.class);
+        return this.restTemplate.postForEntity("/rest/transaction",
+                payload, TransactionResponse.class);
     }
 
+    /**
+     * Calling the service using TestRestTemplate client in order to create
+     * a transaction but with the request with incorrect, missing or
+     * information already registered
+     * @param transaction the transaction that won't be created on the database
+     * @return the response with the error that caused the transaction was not created
+     */
     private ResponseEntity<ApiErrorResponse> errorWhenCreatingTransaction(TransactionRequest transaction) {
+        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(transaction));
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("reference", transaction.getReference());
-        map.put("account_iban", transaction.getAccount_iban());
-        map.put("date", transaction.getDate());
-        map.put("amount", transaction.getAmount());
-        map.put("fee", transaction.getFee());
-        map.put("description", transaction.getDescription());
-
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(map);
-
-        return this.restTemplate.postForEntity(
-                "/rest/transaction", payload, ApiErrorResponse.class);
+        return this.restTemplate.postForEntity("/rest/transaction",
+                payload, ApiErrorResponse.class);
     }
 }
