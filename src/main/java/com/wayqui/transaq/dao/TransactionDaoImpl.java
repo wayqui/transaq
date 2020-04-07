@@ -6,7 +6,9 @@ import com.wayqui.transaq.entity.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class TransactionDaoImpl implements TransactionDao {
@@ -28,9 +30,32 @@ public class TransactionDaoImpl implements TransactionDao {
     }
 
     @Override
+    public List<TransactionDto> findByIban(String account_iban, Boolean ascending) {
+        List<TransactionDto> transactionsByIban = this.findByIban(account_iban);
+
+        if (ascending == null) return transactionsByIban;
+
+        if (ascending) {
+            return transactionsByIban.stream()
+                    .sorted(Comparator.comparingDouble(TransactionDto::getAmount))
+                    .collect(Collectors.toList());
+        } else {
+            return transactionsByIban.stream()
+                    .sorted(Comparator.comparingDouble(TransactionDto::getAmount).reversed())
+                    .collect(Collectors.toList());
+        }
+    }
+
+    @Override
     public TransactionDto save(TransactionDto transactionDto) {
         Transaction entity = TransactionMapper.INSTANCE.dtoToEntity(transactionDto);
         Transaction result = repository.save(entity);
         return TransactionMapper.INSTANCE.entityToDto(result);
+    }
+
+    @Override
+    public double calculateAccountBalance(String iban) {
+        List<TransactionDto> transactions = this.findByIban(iban);
+        return transactions.stream().mapToDouble(v -> v.getAmount() - v.getFee()).sum();
     }
 }

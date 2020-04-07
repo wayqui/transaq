@@ -12,11 +12,8 @@ import org.springframework.stereotype.Service;
 import javax.ws.rs.core.Response;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class TransactionServiceImpl extends TransactionService {
@@ -25,111 +22,113 @@ public class TransactionServiceImpl extends TransactionService {
     TransactionDao transactionDao;
 
     @Override
-    public TransactionDto createTransaction(TransactionDto transaction) {
+    public TransactionDto createTransaction(TransactionDto transaction) throws BusinessException {
 
-        if (Math.abs(transaction.getAmount()) < transaction.getFee()) {
-            // ASSUMPTION: Since it's not mentioned but it's kind of obvious that an ammout cannot be inferior to its fee
-            // I'm rejecting that request
+        // Validate amount and fee
+        this.amountMustBeGreaterThanFee(transaction);
 
-            throw new BusinessException("Fee cannot have a greater value than amount", Response.Status.BAD_REQUEST);
-        }
+        // Validate and generate reference in case of not being informed
+        this.generateTransactionReference(transaction);
 
-        List<TransactionDto> transactionsByReference = new ArrayList<>();
-        if (transaction.getReference() != null) {
-            transactionsByReference = transactionDao.findByReference(transaction.getReference());
-        } else {
-            transaction.setReference(UUID.randomUUID().toString());
-        }
-
-        if (!transactionsByReference.isEmpty()) {
-            // ASSUMPTION: Since it's not mentioned what to do in case of the transaction reference exist
-            // I'm rejecting that request
-
-            throw new BusinessException("The transaction with reference id "+ transaction.getReference() + " is already registered", Response.Status.BAD_REQUEST);
-        }
-
-        if (transaction.getAmount() < 0) { // It's a debit!
-
-            double currentBalance = this.calculateTotalAccountBalance(transaction.getIban());
-
-            double balanceWithTransaction = currentBalance + transaction.getAmount() - transaction.getFee();
-
-            if (balanceWithTransaction >= 0) {
-                return transactionDao.save(transaction);
-            } else {
-                throw new BusinessException("Debit transaction not allowed since the current balance for the account is "+currentBalance, Response.Status.BAD_REQUEST);
-            }
+        // Validate transaction against IBAN's account balance if it's a debit
+        if (transaction.getAmount() < 0) {
+            this.validateIbanAccountBalance(transaction);
         }
 
         return transactionDao.save(transaction);
     }
 
     @Override
-    public List<TransactionDto> findTransactions(String account_iban) {
-        return this.findTransactions(account_iban, null);
-    }
-
-    @Override
     public List<TransactionDto> findTransactions(String account_iban, Boolean ascending) {
-
-        List<TransactionDto> transactionsByIban = transactionDao.findByIban(account_iban);
-
-        // FIXME Sort in the query
-
-        if (ascending != null) {
-            if (ascending) {
-                return transactionsByIban.stream()
-                        .sorted(Comparator.comparingDouble(TransactionDto::getAmount))
-                        .collect(Collectors.toList());
-            } else {
-                return transactionsByIban.stream()
-                        .sorted(Comparator.comparingDouble(TransactionDto::getAmount).reversed())
-                        .collect(Collectors.toList());
-            }
-        }
-
-        return transactionsByIban;
+        return transactionDao.findByIban(account_iban, ascending);
     }
 
     @Override
     public TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel) {
 
-        List<TransactionDto> transactionsByReference = transactionDao.findByReference(reference);
-
-        TransactionStatusDto status = TransactionStatusDto.builder()
-                .reference(reference).status(TransactionStatus.INVALID).build();
-
-        if (transactionsByReference.size() == 1) {
-            TransactionDto transaction = transactionsByReference.iterator().next();
-
-            Instant transactionDate = transaction.getDate().truncatedTo(ChronoUnit.DAYS);
-            Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
-
-            if (channel.equals(TransactionChannel.INTERNAL)) {
-                status.setAmount(transaction.getAmount());
-                status.setFee(transaction.getFee());
-            } else {
-                status.setAmount(transaction.getAmount() - transaction.getFee());
-            }
-
-            if (transactionDate.isBefore(today)) {
-                status.setStatus(TransactionStatus.SETTLED);
-            } else if (transactionDate.isAfter(today)) {
-                status.setStatus(TransactionStatus.FUTURE);
-                if (channel.equals(TransactionChannel.ATM)) {
-                    status.setStatus(TransactionStatus.PENDING);
-                }
-            } else {
-                status.setStatus(TransactionStatus.PENDING);
-            }
+        List<TransactionDto> transactions = transactionDao.findByReference(reference);
+        if (transactions.size() != 1) {
+            return TransactionStatusDto.builder().reference(reference).status(TransactionStatus.INVALID).build();
         }
+        TransactionDto transaction = transactions.iterator().next();
 
-        return status;
+        TransactionStatus status = this.getTransactionStatus(channel, transaction.getDate());
+
+        Double calculatedAmount = channel.equals(TransactionChannel.INTERNAL)
+                ? transaction.getAmount() : transaction.getAmount() - transaction.getFee();
+        Double calculatedFee = channel.equals(TransactionChannel.INTERNAL)
+                ? transaction.getFee() : null;
+
+        return TransactionStatusDto.builder().
+                reference(reference).status(status).amount(calculatedAmount).fee(calculatedFee).
+                build();
     }
 
-    private double calculateTotalAccountBalance(String iban) {
-        List<TransactionDto> transactionsByIban = this.findTransactions(iban);
+    /**
+     * Given a transaction date and a channel, applying some business rules, determine the status of
+     * a transaction
+     * @param channel that where the request comes from
+     * @param transactionDate Date of the transaction
+     * @return the status of the transaction: INVALID PENDING, SETTLED, FUTURE
+     */
+    private TransactionStatus getTransactionStatus(TransactionChannel channel, Instant transactionDate) {
 
-        return transactionsByIban.stream().mapToDouble(v -> v.getAmount() - v.getFee()).sum();
+        Instant transactionDay = transactionDate.truncatedTo(ChronoUnit.DAYS);
+        Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
+
+        if (transactionDay.isBefore(today)) return TransactionStatus.SETTLED;
+        if (transactionDay.equals(today)) return TransactionStatus.PENDING;
+        if (channel.equals(TransactionChannel.ATM)) return TransactionStatus.PENDING;
+
+        return TransactionStatus.FUTURE;
+    }
+
+    /**
+     * ASSUMPTION: Since it's not mentioned but it's kind of obvious that an amount cannot be inferior to its fee
+     * I'm rejecting that request
+     * @param transaction the transaction that have the amount and the fee to validate
+     * @throws BusinessException a exception if the amount is less than the amount
+     */
+    private void amountMustBeGreaterThanFee(TransactionDto transaction) throws BusinessException {
+        if (Math.abs(transaction.getAmount()) < transaction.getFee()) {
+            throw new BusinessException(
+                    "Fee cannot have a greater value than amount",
+                    Response.Status.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * ASSUMPTION: Since it's not mentioned what to do in case of a reference already exists
+     * I'm rejecting that request
+     * @param transaction the transaction whose reference we're validating
+     * @throws BusinessException a exception if the reference is already registered
+     */
+    private void generateTransactionReference(TransactionDto transaction) throws BusinessException {
+        String ref = transaction.getReference();
+        if (ref != null && !transactionDao.findByReference(ref).isEmpty()) {
+            throw new BusinessException(
+                    "The transaction with reference id "+ ref + " is already registered",
+                    Response.Status.BAD_REQUEST);
+        }
+        transaction.setReference(ref != null ? ref : UUID.randomUUID().toString());
+    }
+
+    /**
+     * Validate the account balance from an IBAN and verify if a debit transaction could
+     * leave the account with no money in it.
+     * @param transaction the transaction we're validating
+     * @throws BusinessException a exception if with the input transaction the balance of the acount is zero or less
+     */
+    private void validateIbanAccountBalance(TransactionDto transaction) throws BusinessException {
+        double currentBalance = transactionDao.calculateAccountBalance(transaction.getIban());
+
+        double balancePlusCurrentTransact = currentBalance +
+                (transaction.getAmount() - transaction.getFee());
+
+        if (balancePlusCurrentTransact < 0) {
+            throw new BusinessException(
+                    "Transaction forbidden, the current balance for the account is "+currentBalance,
+                    Response.Status.BAD_REQUEST);
+        }
     }
 }

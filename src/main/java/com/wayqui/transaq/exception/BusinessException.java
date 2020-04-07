@@ -5,7 +5,7 @@ import lombok.Getter;
 import javax.ws.rs.core.Response.Status;
 
 @Getter
-public class BusinessException extends RuntimeException {
+public class BusinessException extends Exception {
 
     static final long serialVersionUID = 1L;
 

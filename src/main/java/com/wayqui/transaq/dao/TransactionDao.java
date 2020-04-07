@@ -10,5 +10,9 @@ public interface TransactionDao {
 
     List<TransactionDto> findByIban(String account_iban);
 
+    List<TransactionDto> findByIban(String account_iban, Boolean ascending);
+
     TransactionDto save(TransactionDto transactionDto);
+
+    double calculateAccountBalance(String iban);
 }

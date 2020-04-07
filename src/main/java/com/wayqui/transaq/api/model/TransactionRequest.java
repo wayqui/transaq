@@ -23,11 +23,12 @@ public class TransactionRequest {
 
     private Instant date;
 
+    /**
+     * ASSUMPTION: Since it's not mentioned but it's obvious that a transaction with an
+     * amount of zero should not be allowed
+     */
     @NotNull(message = "amount cannot be null")
     @NotZero(message = "amount cannot be zero")
-    /* ASSUMPTION: Since it's not mentioned but it's obvious that a transaction with an
-    * amount of zero should not be allowed
-    */
     private Double amount;
 
     @Positive(message = "fee must be positive")
