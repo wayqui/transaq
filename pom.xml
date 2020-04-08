@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.wayqui</groupId>
 	<artifactId>transaq</artifactId>
-	<version>1.0.1-SNAPSHOT</version>
+	<version>1.0.1</version>
 	<packaging>war</packaging>
 	<name>TransaQ</name>
 	<description>TransaQ - A bank transaction handler microservice </description>
