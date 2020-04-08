@@ -1,16 +1,19 @@
 package com.wayqui.transaq.api.model;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 
 @Getter
 @Setter
 @Builder
-public class ApiErrorResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApiErrorResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String status;
     private Instant timestamp;
