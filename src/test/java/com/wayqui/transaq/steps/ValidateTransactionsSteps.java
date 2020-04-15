@@ -1,45 +1,50 @@
 package com.wayqui.transaq.steps;
 
 import com.wayqui.transaq.TransaQApplication;
-import com.wayqui.transaq.api.model.ApiErrorResponse;
-import com.wayqui.transaq.api.model.TransactionRequest;
-import com.wayqui.transaq.api.model.TransactionResponse;
-import com.wayqui.transaq.api.model.TransactionStatusResponse;
-import com.wayqui.transaq.util.TransactionRequestMapper;
+import com.wayqui.transaq.api.model.*;
 import io.cucumber.java8.En;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-@SpringBootTest(classes = TransaQApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(classes = TransaQApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ValidateTransactionsSteps implements En {
+
+
+    private static final String TRANSAC_STATUS = "/rest/transaction/status";
+    private static final String CREATE_TRANSAC = "/rest/transaction";
 
     private final Logger log = LoggerFactory.getLogger(ValidateTransactionsSteps.class);
 
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Value( "${spring.security.user.name}" )
+    private String username;
+
+    @Value( "${spring.security.user.password}" )
+    private String password;
+
     private TransactionRequest unregisteredTransac;
     private TransactionResponse registeredTransac;
-    private TransactionStatusResponse transactionStatus;
     private ResponseEntity<TransactionResponse> createTransacResponse;
     private ResponseEntity<ApiErrorResponse> apiErrorresponse;
     private String referenceId;
     private HttpStatus httpStatusCode;
+    private TransactionStatusResponse transactionStatus;
 
     public ValidateTransactionsSteps() {
         this.stepsForValidateTransactions();
@@ -63,7 +68,9 @@ public class ValidateTransactionsSteps implements En {
 
         When("^I check the status from (.+) channel$", (String channel) -> {
             log.info("I check the status from "+channel+" channel");
-            transactionStatus = this.obtainTransactionStatus(referenceId, channel).getBody();
+            ResponseEntity<TransactionStatusResponse> response = this.obtainTransactionStatus(referenceId, channel);
+            Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+            transactionStatus = response.getBody();
         });
 
         Then("The system returns the status {string}", (String status) -> {
@@ -185,10 +192,20 @@ public class ValidateTransactionsSteps implements En {
      * @return the response from the service with its payload
      */
     private ResponseEntity<TransactionStatusResponse> obtainTransactionStatus(String referenceId, String channel) {
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(referenceId, channel));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-        return this.restTemplate.postForEntity("/rest/transaction/status",
-                payload, TransactionStatusResponse.class);
+        TransactionStatusRequest request = TransactionStatusRequest
+                .builder()
+                .reference(referenceId)
+                .channel(channel)
+                .build();
+
+        HttpEntity<TransactionStatusRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(TRANSAC_STATUS, requestEntity, TransactionStatusResponse.class);
     }
 
     /**
@@ -198,10 +215,14 @@ public class ValidateTransactionsSteps implements En {
      * @return the response with the transaction registered on the database
      */
     private ResponseEntity<TransactionResponse> createTransaction(TransactionRequest transaction) {
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(transaction));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-        return this.restTemplate.postForEntity("/rest/transaction",
-                payload, TransactionResponse.class);
+        HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(transaction, headers);
+
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(CREATE_TRANSAC, requestEntity, TransactionResponse.class);
     }
 
     /**
@@ -212,9 +233,13 @@ public class ValidateTransactionsSteps implements En {
      * @return the response with the error that caused the transaction was not created
      */
     private ResponseEntity<ApiErrorResponse> errorWhenCreatingTransaction(TransactionRequest transaction) {
-        HttpEntity<Map<String, Object>> payload = new HttpEntity<>(TransactionRequestMapper.map(transaction));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
 
-        return this.restTemplate.postForEntity("/rest/transaction",
-                payload, ApiErrorResponse.class);
+        HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(transaction, headers);
+
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(CREATE_TRANSAC, requestEntity, ApiErrorResponse.class);
     }
 }

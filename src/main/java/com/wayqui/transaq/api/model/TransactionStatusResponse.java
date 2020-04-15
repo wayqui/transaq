@@ -9,6 +9,7 @@ import java.io.Serializable;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class TransactionStatusResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
