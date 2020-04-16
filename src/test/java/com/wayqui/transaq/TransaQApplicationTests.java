@@ -4,7 +4,9 @@ import com.wayqui.transaq.api.model.TransactionRequest;
 import com.wayqui.transaq.api.model.TransactionResponse;
 import com.wayqui.transaq.api.model.TransactionStatusRequest;
 import com.wayqui.transaq.api.model.TransactionStatusResponse;
+import com.wayqui.transaq.dao.UserRepository;
 import com.wayqui.transaq.dto.TransactionStatus;
+import com.wayqui.transaq.entity.AppUser;
 import org.junit.Before;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -15,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.Instant;
 
@@ -33,6 +36,12 @@ class TransaQApplicationTests {
 	private String username;
 	@Value( "${spring.security.user.password}" )
 	private String password;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private BCryptPasswordEncoder encoder;
 
 	@Before
 	public void init() {
@@ -63,7 +72,7 @@ class TransaQApplicationTests {
 				.withBasicAuth(username, password)
 				.getForEntity("/rest/transaction?account_iban=ES9820385778983000760236&ascending=false", TransactionResponse[].class);
 
-		assertEquals(response.getStatusCode(), HttpStatus.OK);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
 	}
 
 	@Test
@@ -72,6 +81,35 @@ class TransaQApplicationTests {
 
 		ResponseEntity<TransactionStatusResponse> response = restTemplate
 				.withBasicAuth(username, password)
+				.postForEntity("/rest/transaction/status", request, TransactionStatusResponse.class);
+
+		log.info("testing_POST_Obtain_Transaction_Status => Transaction status: "+response.getBody().toString());
+
+		assertEquals(response.getStatusCode(), HttpStatus.OK);
+		assertNotNull(response.getBody().getStatus());
+		assertEquals(TransactionStatus.INVALID.toString(), response.getBody().getStatus());
+	}
+
+	@Test
+	void testing_Authenticate_With_a_Created_User() {
+		AppUser unregisteredAppUser = new AppUser();
+		unregisteredAppUser.setUsername("joselobm");
+		unregisteredAppUser.setPassword(encoder.encode("testingpwd"));
+		AppUser registeredAppUser = userRepository.save(unregisteredAppUser);
+		assertNotNull(registeredAppUser.getId());
+		log.info("User registered is: "+registeredAppUser.toString());
+		log.info("User registered is: "+registeredAppUser.toString());
+
+		ResponseEntity<TransactionResponse[]> responseGet = restTemplate
+				.withBasicAuth("joselobm", "testingpwd")
+				.getForEntity("/rest/transaction?account_iban=ES9820385778983000760236&ascending=false", TransactionResponse[].class);
+
+		assertEquals(HttpStatus.OK, responseGet.getStatusCode());
+
+		TransactionStatusRequest request = TransactionStatusRequest.builder().reference("dfsdf").channel("INTERNAL").build();
+
+		ResponseEntity<TransactionStatusResponse> response = restTemplate
+				.withBasicAuth("joselobm", "testingpwd")
 				.postForEntity("/rest/transaction/status", request, TransactionStatusResponse.class);
 
 		log.info("testing_POST_Obtain_Transaction_Status => Transaction status: "+response.getBody().toString());

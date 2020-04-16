@@ -2,6 +2,8 @@ package com.wayqui.transaq.steps;
 
 import com.wayqui.transaq.TransaQApplication;
 import com.wayqui.transaq.api.model.*;
+import com.wayqui.transaq.dao.UserRepository;
+import com.wayqui.transaq.entity.AppUser;
 import io.cucumber.java8.En;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -18,7 +21,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 @SpringBootTest(classes = TransaQApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ValidateTransactionsSteps implements En {
@@ -26,11 +29,15 @@ public class ValidateTransactionsSteps implements En {
 
     private static final String TRANSAC_STATUS = "/rest/transaction/status";
     private static final String CREATE_TRANSAC = "/rest/transaction";
+    private static final String AUTHENTICATE =   "/rest/authenticate";
 
     private final Logger log = LoggerFactory.getLogger(ValidateTransactionsSteps.class);
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Value( "${spring.security.user.name}" )
     private String username;
@@ -38,17 +45,69 @@ public class ValidateTransactionsSteps implements En {
     @Value( "${spring.security.user.password}" )
     private String password;
 
+    @Autowired
+    private BCryptPasswordEncoder encoder;
+
     private TransactionRequest unregisteredTransac;
     private TransactionResponse registeredTransac;
-    private ResponseEntity<TransactionResponse> createTransacResponse;
     private ResponseEntity<ApiErrorResponse> apiErrorresponse;
     private String referenceId;
     private HttpStatus httpStatusCode;
     private TransactionStatusResponse transactionStatus;
 
+    private AppUser registeredAppUser;
+    private String validToken;
+
     public ValidateTransactionsSteps() {
+        this.stepsForAuthentication();
         this.stepsForValidateTransactions();
         this.stepsForCreateTransactions();
+
+
+    }
+
+    private void stepsForAuthentication() {
+        Given("^A user not logged in our system$", () -> {
+            username = null;
+            password = null;
+        });
+
+        But("^the user is registered in our system$", () -> {
+            AppUser unregisteredAppUser = new AppUser();
+            unregisteredAppUser.setUsername("joselobm");
+            unregisteredAppUser.setPassword(encoder.encode("testingpwd"));
+            registeredAppUser = userRepository.save(unregisteredAppUser);
+            assertNotNull(registeredAppUser.getId());
+            log.info("User registered is: "+registeredAppUser.toString());
+        });
+
+        When("^I send the user and password to the application$", () -> {
+            ResponseEntity<AuthenticateResponse> response = this.authenticateUser(registeredAppUser.getUsername(), "testingpwd");
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            validToken = response.getBody().getJwtToken();
+            httpStatusCode = response.getStatusCode();
+        });
+
+        And("^I receive a JWT token$", () -> {
+            log.info("tOKEN="+validToken);
+            assertNotNull(validToken);
+        });
+    }
+
+    private ResponseEntity<AuthenticateResponse> authenticateUser(String username, String password) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+        AuthenticateRequest authRequest = new AuthenticateRequest();
+        authRequest.setUsername(username);
+        authRequest.setPassword(password);
+
+        HttpEntity<AuthenticateRequest> requestEntity = new HttpEntity<>(authRequest, headers);
+
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(AUTHENTICATE, requestEntity, AuthenticateResponse.class);
+
     }
 
     private void stepsForValidateTransactions() {
@@ -146,9 +205,9 @@ public class ValidateTransactionsSteps implements En {
 
         When("^I persist the transaction in database$", () -> {
             log.info("I persist the transaction in database");
-            createTransacResponse = this.createTransaction(unregisteredTransac);
-            httpStatusCode = createTransacResponse.getStatusCode();
-            registeredTransac = createTransacResponse.getBody();
+            ResponseEntity<TransactionResponse> response = this.createTransaction(unregisteredTransac);
+            httpStatusCode = response.getStatusCode();
+            registeredTransac = response.getBody();
             referenceId = registeredTransac.getReference();
         });
 
@@ -239,7 +298,8 @@ public class ValidateTransactionsSteps implements En {
 
         HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(transaction, headers);
 
-        return restTemplate.withBasicAuth(username, password)
+        return restTemplate
+                .withBasicAuth(username, password)
                 .postForEntity(CREATE_TRANSAC, requestEntity, ApiErrorResponse.class);
     }
 }
