@@ -6,7 +6,7 @@
 mvn spring-boot:run
 ```
 
-## Endpoint
+## Endpoint and authentication
 
 After started, the service will be available from:
 
@@ -14,13 +14,25 @@ After started, the service will be available from:
 http://localhost:8080/transaq/rest/
 ```
 
+Regarding the authentication, the service has a **basic auth** implemented with credentials:
+
+```bash
+username = appuser
+password = pwdappuser
+```
+
+You have to include those credentials in your requests.
+
+## Available services
+
 You could call it using CURL as follows:
 
 ### Create transaction
 
 ```bash
 curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/' \
---header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--header 'Authorization: Basic YXBwdXNlcjpwd2RhcHB1c2Vy' \
 --data-raw '{
     "account_iban": "ES9820385778983000760236",
     "date": "2020-07-16T16:55:42.000Z",
@@ -35,7 +47,7 @@ curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/'
 ```bash
 curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/status' \
 --header 'Accept: application/json' \
---header 'Content-Type: application/json' \
+--header 'Authorization: Basic YXBwdXNlcjpwd2RhcHB1c2Vy' \
 --data-raw '{
     "reference": "ddcdcd9b-852a-4eaf-b162-bd71d4dc9582",
     "channel": "CLIENT"
@@ -46,7 +58,8 @@ curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/s
 
 ```bash
 curl --location --request GET 'http://localhost:8080/transaq/rest/transaction?account_iban=ES9820385778983000760236&ascending=false' \
---header 'Accept: application/json'
+--header 'Accept: application/json' \
+--header 'Authorization: Basic YXBwdXNlcjpwd2RhcHB1c2Vy'
 ```
 
 ## Database configuration

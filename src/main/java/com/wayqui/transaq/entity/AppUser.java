@@ -15,7 +15,7 @@ import javax.persistence.*;
 @Table(name = "TR_USER")
 public class AppUser {
 
-    @javax.persistence.Id
+    @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private Long Id;
     private String username;

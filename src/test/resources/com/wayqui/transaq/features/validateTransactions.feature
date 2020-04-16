@@ -1,5 +1,15 @@
 Feature: Transaction validation scenarios
 
+  Background: For validating the different scenarios in transaction management
+    we'll consider that the're is a valid user registered in the system and
+  with the right credentials
+
+    Given A user not logged in our system
+    When the user is registered in our system
+    Then the user is created correctly
+    And with the password encrypted
+
+
   @validation
   Scenario Outline: Verify a nonexistent transaction
     Given A transaction that is not stored in our system

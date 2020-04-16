@@ -16,4 +16,5 @@ Feature: Authentication scenarios
     But the user is registered in our system
     When I send the user and password to the application
     Then The service returns the HTTP status 'OK'
+    And the user is created correctly
     And I receive a JWT token

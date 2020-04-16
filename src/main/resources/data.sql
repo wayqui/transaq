@@ -17,3 +17,6 @@ CREATE TABLE TR_USER (
   username VARCHAR(250) NOT NULL,
   password VARCHAR(250) NOT NULL
 );
+
+INSERT INTO TR_USER (id, username, password)
+VALUES (0, 'appuser', '$2y$12$sAg6qnr4LdoplCjgslYNL.AnaDg8Nee3IgMicpjIn4zgiZ8BEXMpK');

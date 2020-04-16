@@ -9,7 +9,6 @@ import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
@@ -39,14 +38,11 @@ public class ValidateTransactionsSteps implements En {
     @Autowired
     private UserRepository userRepository;
 
-    @Value( "${spring.security.user.name}" )
-    private String username;
-
-    @Value( "${spring.security.user.password}" )
-    private String password;
-
     @Autowired
     private BCryptPasswordEncoder encoder;
+
+    private String username;
+    private String password;
 
     private TransactionRequest unregisteredTransac;
     private TransactionResponse registeredTransac;
@@ -62,27 +58,36 @@ public class ValidateTransactionsSteps implements En {
         this.stepsForAuthentication();
         this.stepsForValidateTransactions();
         this.stepsForCreateTransactions();
-
-
     }
 
     private void stepsForAuthentication() {
+
         Given("^A user not logged in our system$", () -> {
-            username = null;
-            password = null;
+            this.username = UUID.randomUUID().toString();
+            this.password = UUID.randomUUID().toString();
         });
 
         But("^the user is registered in our system$", () -> {
+            log.info("Registering user "+this.username+" and password "+this.password);
             AppUser unregisteredAppUser = new AppUser();
-            unregisteredAppUser.setUsername("joselobm");
-            unregisteredAppUser.setPassword(encoder.encode("testingpwd"));
+            unregisteredAppUser.setUsername(this.username);
+            unregisteredAppUser.setPassword(encoder.encode(this.password));
             registeredAppUser = userRepository.save(unregisteredAppUser);
-            assertNotNull(registeredAppUser.getId());
+            assertNotNull(registeredAppUser);
+        });
+
+        Then("^the user is created correctly$", () -> {
             log.info("User registered is: "+registeredAppUser.toString());
+            assertNotNull(registeredAppUser.getId());
+            assertEquals(this.username, registeredAppUser.getUsername());
+        });
+
+        And("^with the password encrypted$", () -> {
+            assertNotEquals(this.password, registeredAppUser.getPassword());
         });
 
         When("^I send the user and password to the application$", () -> {
-            ResponseEntity<AuthenticateResponse> response = this.authenticateUser(registeredAppUser.getUsername(), "testingpwd");
+            ResponseEntity<AuthenticateResponse> response = this.authenticateUser(this.username, this.password);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             validToken = response.getBody().getJwtToken();
             httpStatusCode = response.getStatusCode();
@@ -92,22 +97,6 @@ public class ValidateTransactionsSteps implements En {
             log.info("tOKEN="+validToken);
             assertNotNull(validToken);
         });
-    }
-
-    private ResponseEntity<AuthenticateResponse> authenticateUser(String username, String password) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-
-        AuthenticateRequest authRequest = new AuthenticateRequest();
-        authRequest.setUsername(username);
-        authRequest.setPassword(password);
-
-        HttpEntity<AuthenticateRequest> requestEntity = new HttpEntity<>(authRequest, headers);
-
-        return restTemplate.withBasicAuth(username, password)
-                .postForEntity(AUTHENTICATE, requestEntity, AuthenticateResponse.class);
-
     }
 
     private void stepsForValidateTransactions() {
@@ -241,6 +230,27 @@ public class ValidateTransactionsSteps implements En {
             log.info("with the specific validation error of "+subError);
             Assert.assertTrue(apiErrorresponse.getBody().getErrors().stream().anyMatch(error -> error.equalsIgnoreCase(subError)));
         });
+    }
+
+
+    /**
+     * Calling the service using TestRestTemplate to authenticate a user and, if correct,
+     * a JWT token is generated. The user must be registered on the system (TR_USER table)
+     * @param username the user trying to access the application
+     * @param password the password
+     * @return the response with the JWT token informed
+     */
+    private ResponseEntity<AuthenticateResponse> authenticateUser(String username, String password) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+
+        AuthenticateRequest authRequest = new AuthenticateRequest(username, password);
+
+        HttpEntity<AuthenticateRequest> requestEntity = new HttpEntity<>(authRequest, headers);
+
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(AUTHENTICATE, requestEntity, AuthenticateResponse.class);
     }
 
     /**
