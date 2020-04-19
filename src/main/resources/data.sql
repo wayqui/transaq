@@ -10,5 +10,13 @@ CREATE TABLE TR_TRANSACTION (
   description VARCHAR(250) DEFAULT NULL
 );
 
---INSERT INTO TR_TRANSACTION (reference, account_iban, transaction_date, amount, fee, description) VALUES
---  ('R1', 'IBAN1', current_timestamp, 500.0, 10.0, 'Description 1');
+DROP TABLE IF EXISTS TR_USER;
+
+CREATE TABLE TR_USER (
+  id INT AUTO_INCREMENT  PRIMARY KEY,
+  username VARCHAR(250) NOT NULL,
+  password VARCHAR(250) NOT NULL
+);
+
+INSERT INTO TR_USER (id, username, password)
+VALUES (0, 'appuser', '$2y$12$sAg6qnr4LdoplCjgslYNL.AnaDg8Nee3IgMicpjIn4zgiZ8BEXMpK');

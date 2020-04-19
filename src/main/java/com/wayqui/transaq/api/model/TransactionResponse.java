@@ -10,6 +10,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class TransactionResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
