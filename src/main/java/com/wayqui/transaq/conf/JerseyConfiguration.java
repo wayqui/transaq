@@ -1,6 +1,5 @@
 package com.wayqui.transaq.conf;
 
-import com.wayqui.transaq.api.AuthenticateController;
 import com.wayqui.transaq.api.TransactionController;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +15,5 @@ public class JerseyConfiguration extends ResourceConfig {
     public void init() {
         packages("com.wayqui.transaq.exception");
         register(TransactionController.class);
-        register(AuthenticateController.class);
     }
 }

@@ -2,8 +2,11 @@ package com.wayqui.transaq.steps;
 
 import com.wayqui.transaq.TransaQApplication;
 import com.wayqui.transaq.api.model.*;
+import com.wayqui.transaq.conf.security.JWTTokenHandler;
+import com.wayqui.transaq.conf.security.SecurityConstants;
 import com.wayqui.transaq.dao.UserRepository;
 import com.wayqui.transaq.entity.AppUser;
+import com.wayqui.transaq.service.UserService;
 import io.cucumber.java8.En;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -12,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.text.MessageFormat;
@@ -28,18 +32,24 @@ public class ValidateTransactionsSteps implements En {
 
     private static final String TRANSAC_STATUS = "/rest/transaction/status";
     private static final String CREATE_TRANSAC = "/rest/transaction";
-    private static final String AUTHENTICATE =   "/rest/authenticate";
 
     private final Logger log = LoggerFactory.getLogger(ValidateTransactionsSteps.class);
 
     @Autowired
     private TestRestTemplate restTemplate;
 
+    //TODO remove repository call and implement save method at service level
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private BCryptPasswordEncoder encoder;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private JWTTokenHandler tokenHandler;
 
     private String username;
     private String password;
@@ -58,44 +68,35 @@ public class ValidateTransactionsSteps implements En {
         this.stepsForAuthentication();
         this.stepsForValidateTransactions();
         this.stepsForCreateTransactions();
+
     }
 
     private void stepsForAuthentication() {
 
-        Given("^A user not logged in our system$", () -> {
+        Given("^A user registered in our system$", () -> {
             this.username = UUID.randomUUID().toString();
             this.password = UUID.randomUUID().toString();
-        });
 
-        But("^the user is registered in our system$", () -> {
             log.info("Registering user "+this.username+" and password "+this.password);
             AppUser unregisteredAppUser = new AppUser();
             unregisteredAppUser.setUsername(this.username);
             unregisteredAppUser.setPassword(encoder.encode(this.password));
             registeredAppUser = userRepository.save(unregisteredAppUser);
             assertNotNull(registeredAppUser);
-        });
-
-        Then("^the user is created correctly$", () -> {
-            log.info("User registered is: "+registeredAppUser.toString());
             assertNotNull(registeredAppUser.getId());
             assertEquals(this.username, registeredAppUser.getUsername());
         });
 
-        And("^with the password encrypted$", () -> {
-            assertNotEquals(this.password, registeredAppUser.getPassword());
-        });
-
-        When("^I send the user and password to the application$", () -> {
+        But("^the user logs in$", () -> {
             ResponseEntity<AuthenticateResponse> response = this.authenticateUser(this.username, this.password);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            validToken = response.getBody().getJwtToken();
             httpStatusCode = response.getStatusCode();
+            validToken = new String(response.getHeaders().getFirst(SecurityConstants.TOKEN_HEADER).getBytes()).substring(7);
         });
 
-        And("^I receive a JWT token$", () -> {
-            log.info("tOKEN="+validToken);
-            assertNotNull(validToken);
+        And("^a valid JWT token is generated$", () -> {
+            log.info(validToken);
+            final UserDetails userDetails = userService.loadUserByUsername(username);
+            assertTrue(tokenHandler.validateToken(validToken, userDetails));
         });
     }
 
@@ -250,7 +251,7 @@ public class ValidateTransactionsSteps implements En {
         HttpEntity<AuthenticateRequest> requestEntity = new HttpEntity<>(authRequest, headers);
 
         return restTemplate.withBasicAuth(username, password)
-                .postForEntity(AUTHENTICATE, requestEntity, AuthenticateResponse.class);
+                .postForEntity(SecurityConstants.AUTH_LOGIN_URL, requestEntity, AuthenticateResponse.class);
     }
 
     /**
@@ -264,6 +265,7 @@ public class ValidateTransactionsSteps implements En {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set(SecurityConstants.TOKEN_HEADER, SecurityConstants.TOKEN_PREFIX + validToken);
 
         TransactionStatusRequest request = TransactionStatusRequest
                 .builder()
@@ -273,8 +275,7 @@ public class ValidateTransactionsSteps implements En {
 
         HttpEntity<TransactionStatusRequest> requestEntity = new HttpEntity<>(request, headers);
 
-        return restTemplate.withBasicAuth(username, password)
-                .postForEntity(TRANSAC_STATUS, requestEntity, TransactionStatusResponse.class);
+        return restTemplate.postForEntity(TRANSAC_STATUS, requestEntity, TransactionStatusResponse.class);
     }
 
     /**
@@ -287,10 +288,11 @@ public class ValidateTransactionsSteps implements En {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set(SecurityConstants.TOKEN_HEADER, SecurityConstants.TOKEN_PREFIX + validToken);
 
         HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(transaction, headers);
 
-        return restTemplate.withBasicAuth(username, password)
+        return restTemplate
                 .postForEntity(CREATE_TRANSAC, requestEntity, TransactionResponse.class);
     }
 
@@ -305,11 +307,11 @@ public class ValidateTransactionsSteps implements En {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set(SecurityConstants.TOKEN_HEADER, SecurityConstants.TOKEN_PREFIX + validToken);
 
         HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(transaction, headers);
 
         return restTemplate
-                .withBasicAuth(username, password)
                 .postForEntity(CREATE_TRANSAC, requestEntity, ApiErrorResponse.class);
     }
 }

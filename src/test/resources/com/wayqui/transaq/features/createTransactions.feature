@@ -4,10 +4,10 @@ Feature: Transaction creation scenarios
   we'll consider that the're is a valid user registered in the system and
   with the right credentials
 
-    Given A user not logged in our system
-    When the user is registered in our system
-    Then the user is created correctly
-    And with the password encrypted
+    Given A user registered in our system
+    When the user logs in
+    Then The service returns the HTTP status 'OK'
+    And a valid JWT token is generated
 
   @creation
   Scenario Outline: Create several transactions associated to the same IBAN
