@@ -1,5 +1,14 @@
 Feature: Transaction creation scenarios
 
+  Background: For validating the different scenarios in transaction management
+  we'll consider that the're is a valid user registered in the system and
+  with the right credentials
+
+    Given A user registered in our system
+    When the user logs in
+    Then The service returns the HTTP status 'OK'
+    And a valid JWT token is generated
+
   @creation
   Scenario Outline: Create several transactions associated to the same IBAN
     Given the following information for creating a new transaction: <account_iban>, <date>, <amount>, <fee> and <description>
