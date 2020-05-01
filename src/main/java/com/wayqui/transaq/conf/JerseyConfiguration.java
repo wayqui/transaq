@@ -1,6 +1,7 @@
 package com.wayqui.transaq.conf;
 
 import com.wayqui.transaq.api.TransactionController;
+import com.wayqui.transaq.exception.BusinessExceptionMapper;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
@@ -16,8 +17,12 @@ public class JerseyConfiguration extends ResourceConfig {
 
     @PostConstruct
     public void init() {
-        packages("com.wayqui.transaq.exception");
+        // There's a bug in Jersey for running WARS using packages:
+        // https://github.com/jersey/jersey/pull/196
+        //packages("com.wayqui.transaq.exception");
+
         register(TransactionController.class);
+        register(BusinessExceptionMapper.class);
 
         this.SwaggerConfig();
     }
@@ -31,7 +36,7 @@ public class JerseyConfiguration extends ResourceConfig {
         swaggerConfigBean.setTitle("TransaQ Swagger: A Swagger implementation for our transactions REST service");
         swaggerConfigBean.setVersion("v1");
         swaggerConfigBean.setSchemes(new String[] { "http", "https" });
-        swaggerConfigBean.setBasePath("/rest");
+        swaggerConfigBean.setBasePath("/transaq/rest");
         swaggerConfigBean.setResourcePackage("com.wayqui.transaq.api");
         swaggerConfigBean.setPrettyPrint(true);
         swaggerConfigBean.setScan(true);
