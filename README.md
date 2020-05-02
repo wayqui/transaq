@@ -6,19 +6,58 @@ This microservice handles transactions for users, the following operations are i
 * Search transactions by IBAN
 * Verify the status of a transaction from a channel
 
+## Summary
+
+This service was implemented using:
+
+* Spring Boot
+* Jersey (JAX-RS implementation)
+* H2 databases
+* Cucumber
+* Spring Security
+* JWT Authorization
+* Swagger UI
+
 ## Start the application
+
+* With maven spring-boot command: This command executes the service locally from the source code.
 
 ```bash
 mvn spring-boot:run
 ```
 
-## Endpoint: Authentication and use
+* Running the executable war: If you want to generate the artifact and deploy it you should execute:
+
+ ```bash
+ mvn clean -U install
+...
+ java -jar target/transaq-<version>.war
+ ```
+
+## Endpoints and authentication
 
 After started, the service will be available from:
 
 ```bash
 http://localhost:8080/transaq/rest/
 ```
+
+###Swagger UI endpoint
+
+It has also a Swagger UI interface for the service, it's located here:
+
+```bash
+localhost:8080/transaq/swagger-ui/index.html
+```
+
+This UI contains the references for the set of services provided, both for transaction handling and authentication.
+
+It also contains 2 authorization interfaces, for the 2 authorization mechanisms available in the service: Basic auth (provided by Spring Security) and JWT authorization.
+
+* The Authentication service requires a basic authentication credentials (mentioned bellow).
+* The set of services in the Transactions endpoint require a JWT authorization.
+
+###Authentication and use
 
 Regarding the authentication, the service has a **basic auth** implemented with credentials:
 

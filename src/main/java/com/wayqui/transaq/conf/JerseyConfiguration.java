@@ -33,9 +33,9 @@ public class JerseyConfiguration extends ResourceConfig {
 
         BeanConfig swaggerConfigBean = new BeanConfig();
         swaggerConfigBean.setConfigId("TransaQ Swagger");
-        swaggerConfigBean.setTitle("TransaQ Swagger: A Swagger implementation for our transactions REST service");
+        swaggerConfigBean.setTitle("TransaQ");
+        swaggerConfigBean.setDescription("TransaQ is a banking transaction service. This is a Swagger implementation for our transactions REST service");
         swaggerConfigBean.setVersion("v1");
-        swaggerConfigBean.setSchemes(new String[] { "http", "https" });
         swaggerConfigBean.setBasePath("/transaq/rest");
         swaggerConfigBean.setResourcePackage("com.wayqui.transaq.api");
         swaggerConfigBean.setPrettyPrint(true);
