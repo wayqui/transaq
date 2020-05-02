@@ -40,7 +40,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         System.out.println("SecurityConfiguration! configure");
         http.cors().and().csrf().disable()
-            .authorizeRequests().antMatchers(SecurityConstants.AUTH_LOGIN_URL).permitAll()
+            .authorizeRequests().antMatchers(SecurityConstants.AUTH_LOGIN_URL,
+                "/rest/swagger.json", "/rest/swagger.yaml",
+                "/v2/api-docs",
+                "/configuration/ui",
+                "/swagger-resources/**",
+                "/configuration/security",
+                "/swagger-ui/**",
+                "/webjars/**"
+        ).permitAll()
             .anyRequest().authenticated()
             .and()
             .addFilter(new AppAuthenticationFilter(authenticationManager(), userService, tokenHandler))
