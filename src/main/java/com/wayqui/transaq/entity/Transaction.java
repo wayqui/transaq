@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 @Entity
 @AllArgsConstructor
@@ -23,7 +23,7 @@ public class Transaction {
     private String iban;
 
     @Column(name = "transaction_date")
-    private Instant date;
+    private OffsetDateTime date;
     private Double amount;
     private Double fee;
     private String description;

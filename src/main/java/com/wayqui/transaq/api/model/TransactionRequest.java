@@ -6,7 +6,7 @@ import lombok.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 @Builder
 @Getter
@@ -21,7 +21,7 @@ public class TransactionRequest {
     @NotBlank(message = "account_iban cannot be empty")
     private String account_iban;
 
-    private Instant date;
+    private OffsetDateTime date;
 
     /**
      * ASSUMPTION: Since it's not mentioned but it's obvious that a transaction with an
