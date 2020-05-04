@@ -2,7 +2,7 @@ package com.wayqui.transaq.dto;
 
 import lombok.*;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 @Builder
 @Getter
@@ -12,7 +12,7 @@ import java.time.Instant;
 public class TransactionDto {
     private String reference;
     private String iban;
-    private Instant date;
+    private OffsetDateTime date;
     private Double amount;
     private Double fee;
     private String description;

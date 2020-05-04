@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.core.Response;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -71,10 +71,10 @@ public class TransactionServiceImpl extends TransactionService {
      * @param transactionDate Date of the transaction
      * @return the status of the transaction: INVALID PENDING, SETTLED, FUTURE
      */
-    private TransactionStatus getTransactionStatus(TransactionChannel channel, Instant transactionDate) {
+    private TransactionStatus getTransactionStatus(TransactionChannel channel, OffsetDateTime transactionDate) {
 
-        Instant transactionDay = transactionDate.truncatedTo(ChronoUnit.DAYS);
-        Instant today = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime transactionDay = transactionDate.truncatedTo(ChronoUnit.DAYS);
+        OffsetDateTime today = OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS);
 
         if (transactionDay.isBefore(today)) return TransactionStatus.SETTLED;
         if (transactionDay.equals(today)) return TransactionStatus.PENDING;

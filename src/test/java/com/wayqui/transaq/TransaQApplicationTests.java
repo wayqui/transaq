@@ -18,7 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -54,7 +54,7 @@ class TransaQApplicationTests {
 	@Test
 	void testing_POST_Create_Transaction() {
 		TransactionRequest transactionRequest = new TransactionRequest();
-		transactionRequest.setDate(Instant.now());
+		transactionRequest.setDate(OffsetDateTime.now());
 		transactionRequest.setAccount_iban("ES9820385778983000760236");
 		transactionRequest.setAmount(2343.4);
 		transactionRequest.setDescription("Lorem ipsun...");

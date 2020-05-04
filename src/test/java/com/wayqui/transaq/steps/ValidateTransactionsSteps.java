@@ -19,7 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.text.MessageFormat;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.UUID;
@@ -109,7 +109,7 @@ public class ValidateTransactionsSteps implements En {
                     .reference(referenceId)
                     .account_iban("ES9621005463714895928752")
                     .amount(2850.30)
-                    .date(Instant.now())
+                    .date(OffsetDateTime.now())
                     .description("Salary for april 2020")
                     .fee(35.5)
                     .build();
@@ -139,17 +139,17 @@ public class ValidateTransactionsSteps implements En {
 
         And("^the transaction date is before today$", () -> {
             log.info("the transaction date is before today");
-            unregisteredTransac.setDate(Instant.now().minus(1, ChronoUnit.DAYS));
+            unregisteredTransac.setDate(OffsetDateTime.now().minus(1, ChronoUnit.DAYS));
         });
 
         And("^the transaction date is equals to today$", () -> {
             log.info("the transaction date is equals to today");
-            unregisteredTransac.setDate(Instant.now());
+            unregisteredTransac.setDate(OffsetDateTime.now());
         });
 
         And("^the transaction date is greater than today$", () -> {
             log.info("the transaction date is greater than today");
-            unregisteredTransac.setDate(Instant.now().plus(1, ChronoUnit.DAYS));
+            unregisteredTransac.setDate(OffsetDateTime.now().plus(1, ChronoUnit.DAYS));
         });
 
         And("^the transaction reference is not informed$", () -> {
@@ -186,7 +186,7 @@ public class ValidateTransactionsSteps implements En {
 
             unregisteredTransac = TransactionRequest.builder()
                     .account_iban(accountiban)
-                    .date(Instant.parse(date))
+                    .date(OffsetDateTime.parse(date))
                     .amount(Double.valueOf(amount))
                     .fee(Double.valueOf(fee))
                     .description(description)
