@@ -24,6 +24,7 @@
 		<replacer.version>1.5.3</replacer.version>
 		<swagger-ui.version>3.17.0</swagger-ui.version>
 		<spring-kafka.version>2.4.6.RELEASE</spring-kafka.version>
+		<embedded-kafka.version>0.6.0</embedded-kafka.version>
 	</properties>
 
 	<dependencies>
@@ -118,6 +119,19 @@
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
 			<version>${spring-kafka.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka-test</artifactId>
+			<version>${spring-kafka.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+			</exclusions>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>

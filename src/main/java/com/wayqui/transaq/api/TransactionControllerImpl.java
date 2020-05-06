@@ -43,11 +43,11 @@ public class TransactionControllerImpl implements TransactionController {
                 TransactionMapper.INSTANCE.requestToDto(transaction));
 
         TransactionEvent transactEvent = TransactionEvent.builder()
-                .id(new Random().nextInt())
+                .id(new Random().nextLong())
                 .transactionDto(response)
                 .recordHeaders(Collections.singletonList(new RecordHeader("Origin", "Transaq".getBytes())))
                 .build();
-        kafkaProducer.sendAsync(transactEvent, "transaction-events");
+        kafkaProducer.sendAsyncDefaultTopic(transactEvent);
 
         return Response.status(Response.Status.CREATED)
                 .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();

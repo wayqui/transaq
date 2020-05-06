@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 public class TransactionEvent {
 
-    private Integer id;
+    private Long id;
     private TransactionDto transactionDto;
     private List<Header> recordHeaders;
 }

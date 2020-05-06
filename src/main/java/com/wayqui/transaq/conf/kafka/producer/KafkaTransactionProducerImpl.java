@@ -16,13 +16,13 @@ import org.springframework.util.concurrent.ListenableFutureCallback;
 public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
 
     @Autowired
-    KafkaTemplate<Integer, String> kafkaTemplate;
+    KafkaTemplate<Long, String> kafkaTemplate;
 
     @Override
     public void sendAsyncDefaultTopic(TransactionEvent event) {
         String transactJSON = new Gson().toJson(event.getTransactionDto());
 
-        ListenableFuture<SendResult<Integer, String>> listenerFuture =
+        ListenableFuture<SendResult<Long, String>> listenerFuture =
                 kafkaTemplate.sendDefault(event.getId(), transactJSON);
         listenerFuture.addCallback(new ListenerCallback(event.getId(), transactJSON));
     }
@@ -31,20 +31,20 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
     public void sendAsync(TransactionEvent event, String topic) {
         String transactJSON = new Gson().toJson(event.getTransactionDto());
 
-        ProducerRecord<Integer, String> producerRecord =
-                new ProducerRecord<>(topic, null, event.getId(), transactJSON, event.getRecordHeaders());
+        ProducerRecord<Long, String> producerRecord =
+                new ProducerRecord<>(topic, null, null, event.getId(), transactJSON, event.getRecordHeaders());
 
-        ListenableFuture<SendResult<Integer, String>> listenerFuture =
+        ListenableFuture<SendResult<Long, String>> listenerFuture =
                 kafkaTemplate.send(producerRecord);
         listenerFuture.addCallback(new ListenerCallback(event.getId(), transactJSON));
     }
 
-    private static class ListenerCallback implements ListenableFutureCallback<SendResult<Integer, String>> {
+    private static class ListenerCallback implements ListenableFutureCallback<SendResult<Long, String>> {
 
-        private Integer key;
+        private Long key;
         private String value;
 
-        public ListenerCallback(Integer key, String value) {
+        public ListenerCallback(Long key, String value) {
             this.key = key;
             this.value = value;
         }
@@ -55,7 +55,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
         }
 
         @Override
-        public void onSuccess(SendResult<Integer, String> integerStringSendResult) {
+        public void onSuccess(SendResult<Long, String> integerStringSendResult) {
             log.info("This is the message {} ==> {} and the partition is {}",key, value, integerStringSendResult.getRecordMetadata().partition());
         }
     }

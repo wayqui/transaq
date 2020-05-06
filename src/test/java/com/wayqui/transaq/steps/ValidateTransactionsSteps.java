@@ -2,6 +2,7 @@ package com.wayqui.transaq.steps;
 
 import com.wayqui.transaq.TransaQApplication;
 import com.wayqui.transaq.api.model.*;
+import com.wayqui.transaq.conf.kafka.producer.KafkaTransactionProducer;
 import com.wayqui.transaq.conf.security.JWTTokenHandler;
 import com.wayqui.transaq.conf.security.SecurityConstants;
 import com.wayqui.transaq.dao.UserRepository;
@@ -15,8 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -27,6 +30,16 @@ import java.util.UUID;
 import static org.junit.Assert.*;
 
 @SpringBootTest(classes = TransaQApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EmbeddedKafka(
+        topics = {"transaction-events"},
+        partitions = 3,
+        brokerProperties={
+                "log.dir=out/embedded-kafka"
+        })
+@TestPropertySource(
+        properties = {
+                "spring.kafka.producer.bootstrap-servers=${spring.embedded.kafka.brokers}"
+        })
 public class ValidateTransactionsSteps implements En {
 
 
@@ -50,6 +63,9 @@ public class ValidateTransactionsSteps implements En {
 
     @Autowired
     private JWTTokenHandler tokenHandler;
+
+    @Autowired
+    private KafkaTransactionProducer kafkaProducer;
 
     private String username;
     private String password;
