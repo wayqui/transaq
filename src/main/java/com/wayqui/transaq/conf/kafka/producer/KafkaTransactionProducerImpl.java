@@ -28,7 +28,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
     }
 
     @Override
-    public void sendAsync(TransactionEvent event, String topic) {
+    public ListenableFuture<SendResult<Long, String>> sendAsync(TransactionEvent event, String topic) {
         String transactJSON = new Gson().toJson(event.getTransactionDto());
 
         ProducerRecord<Long, String> producerRecord =
@@ -37,6 +37,8 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
         ListenableFuture<SendResult<Long, String>> listenerFuture =
                 kafkaTemplate.send(producerRecord);
         listenerFuture.addCallback(new ListenerCallback(event.getId(), transactJSON));
+
+        return listenerFuture;
     }
 
     private static class ListenerCallback implements ListenableFutureCallback<SendResult<Long, String>> {
