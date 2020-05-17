@@ -2,6 +2,7 @@ package com.wayqui.transaq.dao;
 
 import com.wayqui.transaq.dto.TransactionDto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface TransactionDao {
@@ -14,5 +15,5 @@ public interface TransactionDao {
 
     TransactionDto save(TransactionDto transactionDto);
 
-    double calculateAccountBalance(String iban);
+    BigDecimal calculateAccountBalance(String iban);
 }

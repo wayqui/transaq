@@ -6,6 +6,7 @@ import lombok.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Builder
@@ -29,10 +30,10 @@ public class TransactionRequest {
      */
     @NotNull(message = "amount cannot be null")
     @NotZero(message = "amount cannot be zero")
-    private Double amount;
+    private BigDecimal amount;
 
     @Positive(message = "fee must be positive")
-    private Double fee;
+    private BigDecimal fee;
 
     private String description;
 }

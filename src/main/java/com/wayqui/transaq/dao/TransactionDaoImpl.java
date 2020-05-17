@@ -6,6 +6,7 @@ import com.wayqui.transaq.entity.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,11 +38,11 @@ public class TransactionDaoImpl implements TransactionDao {
 
         if (ascending) {
             return transactionsByIban.stream()
-                    .sorted(Comparator.comparingDouble(TransactionDto::getAmount))
+                    .sorted(Comparator.comparing(TransactionDto::getAmount))
                     .collect(Collectors.toList());
         } else {
             return transactionsByIban.stream()
-                    .sorted(Comparator.comparingDouble(TransactionDto::getAmount).reversed())
+                    .sorted(Comparator.comparing(TransactionDto::getAmount).reversed())
                     .collect(Collectors.toList());
         }
     }
@@ -54,8 +55,10 @@ public class TransactionDaoImpl implements TransactionDao {
     }
 
     @Override
-    public double calculateAccountBalance(String iban) {
+    public BigDecimal calculateAccountBalance(String iban) {
         List<TransactionDto> transactions = this.findByIban(iban);
-        return transactions.stream().mapToDouble(v -> v.getAmount() - v.getFee()).sum();
+        return transactions.stream()
+                .map(v -> v.getAmount().subtract(v.getFee()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

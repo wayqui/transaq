@@ -3,6 +3,7 @@ package com.wayqui.transaq.api.model;
 import lombok.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Builder
@@ -18,7 +19,7 @@ public class TransactionResponse implements Serializable {
     private String reference;
     private String account_iban;
     private Instant date;
-    private Double amount;
-    private Double fee;
+    private BigDecimal amount;
+    private BigDecimal fee;
     private String description;
 }

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -24,8 +25,8 @@ public class Transaction {
 
     @Column(name = "transaction_date")
     private Instant date;
-    private Double amount;
-    private Double fee;
+    private BigDecimal amount;
+    private BigDecimal fee;
     private String description;
 
     @Override

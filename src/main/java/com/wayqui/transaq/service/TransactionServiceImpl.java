@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.core.Response;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -31,7 +32,7 @@ public class TransactionServiceImpl extends TransactionService {
         this.generateTransactionReference(transaction);
 
         // Validate transaction against IBAN's account balance if it's a debit
-        if (transaction.getAmount() < 0) {
+        if (transaction.getAmount().compareTo(new BigDecimal("0")) < 0) {
             this.validateIbanAccountBalance(transaction);
         }
 
@@ -54,9 +55,9 @@ public class TransactionServiceImpl extends TransactionService {
 
         TransactionStatus status = this.getTransactionStatus(channel, transaction.getDate());
 
-        Double calculatedAmount = channel.equals(TransactionChannel.INTERNAL)
-                ? transaction.getAmount() : transaction.getAmount() - transaction.getFee();
-        Double calculatedFee = channel.equals(TransactionChannel.INTERNAL)
+        BigDecimal calculatedAmount = channel.equals(TransactionChannel.INTERNAL)
+                ? transaction.getAmount() : transaction.getAmount().subtract(transaction.getFee());
+        BigDecimal calculatedFee = channel.equals(TransactionChannel.INTERNAL)
                 ? transaction.getFee() : null;
 
         return TransactionStatusDto.builder().
@@ -90,7 +91,7 @@ public class TransactionServiceImpl extends TransactionService {
      * @throws BusinessException a exception if the amount is less than the amount
      */
     private void amountMustBeGreaterThanFee(TransactionDto transaction) throws BusinessException {
-        if (Math.abs(transaction.getAmount()) < transaction.getFee()) {
+        if (transaction.getAmount().abs().compareTo(transaction.getFee()) < 0) {
             throw new BusinessException(
                     "Fee cannot have a greater value than amount",
                     Response.Status.BAD_REQUEST);
@@ -120,12 +121,12 @@ public class TransactionServiceImpl extends TransactionService {
      * @throws BusinessException a exception if with the input transaction the balance of the acount is zero or less
      */
     private void validateIbanAccountBalance(TransactionDto transaction) throws BusinessException {
-        double currentBalance = transactionDao.calculateAccountBalance(transaction.getIban());
+        BigDecimal currentBalance = transactionDao.calculateAccountBalance(transaction.getIban());
 
-        double balancePlusCurrentTransact = currentBalance +
-                (transaction.getAmount() - transaction.getFee());
+        BigDecimal balancePlusCurrentTransact = currentBalance.add(
+                transaction.getAmount().subtract(transaction.getFee()));
 
-        if (balancePlusCurrentTransact < 0) {
+        if (balancePlusCurrentTransact.compareTo(new BigDecimal("0")) < 0) {
             throw new BusinessException(
                     "Transaction forbidden, the current balance for the account is "+currentBalance,
                     Response.Status.BAD_REQUEST);

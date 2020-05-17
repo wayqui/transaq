@@ -2,6 +2,7 @@ package com.wayqui.transaq.dto;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -14,8 +15,8 @@ public class TransactionDto {
     private String reference;
     private String iban;
     private Instant date;
-    private Double amount;
-    private Double fee;
+    private BigDecimal amount;
+    private BigDecimal fee;
     private String description;
 
     @Override

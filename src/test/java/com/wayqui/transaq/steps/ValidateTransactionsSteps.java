@@ -21,10 +21,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 
+import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -121,13 +123,14 @@ public class ValidateTransactionsSteps implements En {
             log.info("A transaction that is not stored in our system");
 
             referenceId = UUID.randomUUID().toString();
-            unregisteredTransac = TransactionRequest.builder()
-                    .reference(referenceId)
-                    .account_iban("ES9621005463714895928752")
-                    .amount(2850.30)
-                    .date(Instant.now())
-                    .description("Salary for april 2020")
-                    .fee(35.5)
+            TransactionRequest.TransactionRequestBuilder builder = TransactionRequest.builder();
+            builder.reference(referenceId);
+            builder.account_iban("ES9621005463714895928752");
+            builder.amount(new BigDecimal("2850.30"));
+            builder.date(Instant.now());
+            builder.description("Salary for april 2020");
+            builder.fee(new BigDecimal("35.5"));
+            unregisteredTransac = builder
                     .build();
         });
 
@@ -147,9 +150,9 @@ public class ValidateTransactionsSteps implements En {
             log.info("A transaction that is stored in our system");
             unregisteredTransac = TransactionRequest.builder()
                     .account_iban("ES9621005463714895928752")
-                    .amount(2850.30)
+                    .amount(new BigDecimal("2850.30"))
                     .description("Salary for april 2020")
-                    .fee(35.5)
+                    .fee(new BigDecimal("35.50"))
                     .build();
         });
 
@@ -176,19 +179,19 @@ public class ValidateTransactionsSteps implements En {
         And("^the amount substracting the fee$", () -> {
             log.info("the amount substracting the fee");
             Assert.assertNull(transactionStatus.getFee());
-            Assert.assertEquals(transactionStatus.getAmount(), registeredTransac.getAmount() - registeredTransac.getFee(), 0.001);
+            Assert.assertEquals(transactionStatus.getAmount(), registeredTransac.getAmount().subtract(registeredTransac.getFee()));
         });
 
         And("^the amount$", () -> {
             log.info("the amount");
             Assert.assertNotNull(transactionStatus.getAmount());
-            Assert.assertEquals(transactionStatus.getAmount(), registeredTransac.getAmount(), 0.001);
+            Assert.assertEquals(transactionStatus.getAmount(), registeredTransac.getAmount());
         });
 
         And("^the fee$", () -> {
             log.info("the fee");
             Assert.assertNotNull(transactionStatus.getFee());
-            Assert.assertEquals(transactionStatus.getFee(), registeredTransac.getFee(), 0.001);
+            Assert.assertEquals(transactionStatus.getFee(), registeredTransac.getFee());
         });
     }
 
@@ -203,8 +206,8 @@ public class ValidateTransactionsSteps implements En {
             unregisteredTransac = TransactionRequest.builder()
                     .account_iban(accountiban)
                     .date(Instant.parse(date))
-                    .amount(Double.valueOf(amount))
-                    .fee(Double.valueOf(fee))
+                    .amount(new BigDecimal(amount))
+                    .fee(new BigDecimal(fee))
                     .description(description)
                     .build();
         });
@@ -280,7 +283,7 @@ public class ValidateTransactionsSteps implements En {
     private ResponseEntity<TransactionStatusResponse> obtainTransactionStatus(String referenceId, String channel) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set(SecurityConstants.TOKEN_HEADER, SecurityConstants.TOKEN_PREFIX + validToken);
 
         TransactionStatusRequest request = TransactionStatusRequest

@@ -1,8 +1,11 @@
 package com.wayqui.transaq.conf.kafka.producer;
 
-import com.google.gson.Gson;
+import com.wayqui.avro.TransactionAvro;
 import com.wayqui.transaq.conf.kafka.model.TransactionEvent;
+import com.wayqui.transaq.dto.TransactionDto;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalTypes;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -11,42 +14,72 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
+import java.nio.ByteBuffer;
+
 @Component
 @Slf4j
 public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
 
     @Autowired
-    KafkaTemplate<Long, String> kafkaTemplate;
+    KafkaTemplate<Long, TransactionAvro> kafkaTemplate;
 
     @Override
     public void sendAsyncDefaultTopic(TransactionEvent event) {
-        String transactJSON = new Gson().toJson(event.getTransactionDto());
+        TransactionDto dto = event.getTransactionDto();
 
-        ListenableFuture<SendResult<Long, String>> listenerFuture =
-                kafkaTemplate.sendDefault(event.getId(), transactJSON);
-        listenerFuture.addCallback(new ListenerCallback(event.getId(), transactJSON));
+        Conversions.DecimalConversion DECIMAL_CONVERTER = new Conversions.DecimalConversion();
+
+        LogicalTypes.Decimal decimaltype = LogicalTypes.decimal(6, 2);
+
+        ByteBuffer feeBuff = DECIMAL_CONVERTER.toBytes(dto.getFee(), null, decimaltype);
+        ByteBuffer amountBuff = DECIMAL_CONVERTER.toBytes(dto.getAmount(), null, decimaltype);
+
+        TransactionAvro transactMsg = TransactionAvro.newBuilder()
+                .setFee(feeBuff)
+                .setAmount(amountBuff)
+                .setReference(dto.getReference())
+                .setIban(dto.getIban())
+                .setDescription(dto.getDescription())
+                .setDate(dto.getDate().toEpochMilli())
+                .build();
+
+        ListenableFuture<SendResult<Long, TransactionAvro>> listenerFuture =
+                kafkaTemplate.sendDefault(event.getId(), transactMsg);
+        listenerFuture.addCallback(new ListenerCallback(event.getId(), transactMsg));
     }
 
     @Override
-    public ListenableFuture<SendResult<Long, String>> sendAsync(TransactionEvent event, String topic) {
-        String transactJSON = new Gson().toJson(event.getTransactionDto());
+    public ListenableFuture<SendResult<Long, TransactionAvro>> sendAsync(TransactionEvent event, String topic) {
+        TransactionDto dto = event.getTransactionDto();
 
-        ProducerRecord<Long, String> producerRecord =
-                new ProducerRecord<>(topic, null, null, event.getId(), transactJSON, event.getRecordHeaders());
+        ByteBuffer feeBuff = ByteBuffer.wrap(dto.getFee().unscaledValue().toByteArray());
+        ByteBuffer amountBuff = ByteBuffer.wrap(dto.getAmount().unscaledValue().toByteArray());
 
-        ListenableFuture<SendResult<Long, String>> listenerFuture =
+        TransactionAvro transactMsg = TransactionAvro.newBuilder()
+                .setFee(feeBuff)
+                .setAmount(amountBuff)
+                .setReference(dto.getReference())
+                .setIban(dto.getIban())
+                .setDescription(dto.getDescription())
+                .setDate(dto.getDate().toEpochMilli())
+                .build();
+
+        ProducerRecord<Long, TransactionAvro> producerRecord =
+                new ProducerRecord<>(topic, null, null, event.getId(), transactMsg, event.getRecordHeaders());
+
+        ListenableFuture<SendResult<Long, TransactionAvro>> listenerFuture =
                 kafkaTemplate.send(producerRecord);
-        listenerFuture.addCallback(new ListenerCallback(event.getId(), transactJSON));
+        listenerFuture.addCallback(new ListenerCallback(event.getId(), transactMsg));
 
         return listenerFuture;
     }
 
-    private static class ListenerCallback implements ListenableFutureCallback<SendResult<Long, String>> {
+    private static class ListenerCallback implements ListenableFutureCallback<SendResult<Long, TransactionAvro>> {
 
         private Long key;
-        private String value;
+        private TransactionAvro value;
 
-        public ListenerCallback(Long key, String value) {
+        public ListenerCallback(Long key, TransactionAvro value) {
             this.key = key;
             this.value = value;
         }
@@ -62,7 +95,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
         }
 
         @Override
-        public void onSuccess(SendResult<Long, String> integerStringSendResult) {
+        public void onSuccess(SendResult<Long, TransactionAvro> integerStringSendResult) {
             log.info("This is the message {} ==> {} and the partition is {}",key, value, integerStringSendResult.getRecordMetadata().partition());
         }
     }

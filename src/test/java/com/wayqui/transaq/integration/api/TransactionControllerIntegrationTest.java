@@ -26,6 +26,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.TestPropertySource;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 
@@ -79,10 +80,10 @@ public class TransactionControllerIntegrationTest {
     private void createRequest() {
         transactionRequest = TransactionRequest.builder()
                 .reference(UUID.randomUUID().toString())
-                .amount(150d)
+                .amount(BigDecimal.valueOf(150d))
                 .date(Instant.now())
                 .description("Testing transaction")
-                .fee(15d)
+                .fee(BigDecimal.valueOf(15d))
                 .account_iban("ES9820385778983000760236")
                 .build();
     }
