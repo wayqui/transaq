@@ -40,7 +40,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
                 .setReference(dto.getReference())
                 .setIban(dto.getIban())
                 .setDescription(dto.getDescription())
-                .setDate(dto.getDate().toEpochMilli())
+                .setDate(dto.getDate().toInstant().toEpochMilli())
                 .build();
 
         ListenableFuture<SendResult<Long, TransactionAvro>> listenerFuture =
@@ -61,7 +61,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
                 .setReference(dto.getReference())
                 .setIban(dto.getIban())
                 .setDescription(dto.getDescription())
-                .setDate(dto.getDate().toEpochMilli())
+                .setDate(dto.getDate().toInstant().toEpochMilli())
                 .build();
 
         ProducerRecord<Long, TransactionAvro> producerRecord =

@@ -32,7 +32,7 @@ public class TransactionServiceImpl implements TransactionService {
         this.generateTransactionReference(transaction);
 
         // Validate transaction against IBAN's account balance if it's a debit
-        if (transaction.getAmount() < 0) {
+        if (transaction.getAmount().compareTo(new BigDecimal("0")) < 0) {
             this.validateIbanAccountBalance(transaction);
         }
 

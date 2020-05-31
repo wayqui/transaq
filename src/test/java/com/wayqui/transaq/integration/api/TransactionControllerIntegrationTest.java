@@ -27,7 +27,7 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 import static com.wayqui.transaq.conf.security.SecurityConstants.AUTH_LOGIN_URL;
@@ -81,7 +81,7 @@ public class TransactionControllerIntegrationTest {
         transactionRequest = TransactionRequest.builder()
                 .reference(UUID.randomUUID().toString())
                 .amount(BigDecimal.valueOf(150d))
-                .date(Instant.now())
+                .date(OffsetDateTime.now())
                 .description("Testing transaction")
                 .fee(BigDecimal.valueOf(15d))
                 .account_iban("ES9820385778983000760236")

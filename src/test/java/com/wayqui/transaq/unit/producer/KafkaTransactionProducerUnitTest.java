@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -53,7 +54,7 @@ public class KafkaTransactionProducerUnitTest {
                         .builder()
                         .reference(UUID.randomUUID().toString())
                         .amount(new BigDecimal(new BigInteger("50"), 2))
-                        .date(Instant.now())
+                        .date(OffsetDateTime.now())
                         .description("Testing transaction")
                         .fee(new BigDecimal(new BigInteger("30"), 2))
                         .iban("ES9820385778983000760236")
@@ -71,7 +72,7 @@ public class KafkaTransactionProducerUnitTest {
                 .setReference(dto.getReference())
                 .setIban(dto.getIban())
                 .setDescription(dto.getDescription())
-                .setDate(dto.getDate().toEpochMilli())
+                .setDate(dto.getDate().toInstant().toEpochMilli())
                 .build();
     }
 

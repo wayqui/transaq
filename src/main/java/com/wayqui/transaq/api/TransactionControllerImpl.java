@@ -45,8 +45,6 @@ public class TransactionControllerImpl implements TransactionController {
 
         return Response.status(Response.Status.CREATED)
                 .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
-            return Response.status(Response.Status.CREATED)
-                    .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
 
         } catch (BusinessException e) {
             ApiErrorResponse errorResponse = ApiErrorResponse.builder()
