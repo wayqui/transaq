@@ -1,6 +1,7 @@
-package com.wayqui.transaq.exception;
+package com.wayqui.transaq.api.error;
 
 import com.wayqui.transaq.api.model.ApiErrorResponse;
+import com.wayqui.transaq.exception.BusinessException;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;

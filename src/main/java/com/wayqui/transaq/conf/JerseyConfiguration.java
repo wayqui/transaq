@@ -1,7 +1,8 @@
 package com.wayqui.transaq.conf;
 
 import com.wayqui.transaq.api.TransactionController;
-import com.wayqui.transaq.exception.BusinessExceptionMapper;
+import com.wayqui.transaq.api.error.BusinessExceptionMapper;
+import com.wayqui.transaq.api.error.ConstraintViolationExceptionMapper;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
@@ -23,6 +24,7 @@ public class JerseyConfiguration extends ResourceConfig {
 
         register(TransactionController.class);
         register(BusinessExceptionMapper.class);
+        register(ConstraintViolationExceptionMapper.class);
 
         this.SwaggerConfig();
     }

@@ -7,6 +7,7 @@ import com.wayqui.transaq.api.model.TransactionStatusResponse;
 import com.wayqui.transaq.exception.BusinessException;
 import io.swagger.annotations.*;
 
+import javax.validation.Valid;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
@@ -39,7 +40,7 @@ public interface TransactionController {
             @ApiResponse(code = 403, message = "You don't have permissions for this operation"),
             @ApiResponse(code = 500, message = "Internal error")
     })
-    Response createTransaction(TransactionRequest transaction) throws BusinessException;
+    Response createTransaction(@Valid TransactionRequest transaction) throws BusinessException;
 
     @GET
     @Produces("application/json")

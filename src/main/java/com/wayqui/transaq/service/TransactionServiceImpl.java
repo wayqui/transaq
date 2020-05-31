@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class TransactionServiceImpl extends TransactionService {
+public class TransactionServiceImpl implements TransactionService {
 
     @Autowired
     TransactionDao transactionDao;
