@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -56,9 +57,9 @@ class TransaQApplicationTests {
 		TransactionRequest transactionRequest = new TransactionRequest();
 		transactionRequest.setDate(OffsetDateTime.now());
 		transactionRequest.setAccount_iban("ES9820385778983000760236");
-		transactionRequest.setAmount(2343.4);
+		transactionRequest.setAmount(BigDecimal.valueOf(2343.4));
 		transactionRequest.setDescription("Lorem ipsun...");
-		transactionRequest.setFee(23.2);
+		transactionRequest.setFee(BigDecimal.valueOf(23.2));
 
 		ResponseEntity<TransactionResponse> response = restTemplate
 				.withBasicAuth(username, password)
