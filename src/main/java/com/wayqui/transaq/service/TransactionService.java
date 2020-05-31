@@ -1,47 +1,13 @@
 package com.wayqui.transaq.service;
 
-import com.wayqui.transaq.api.model.ApiErrorResponse;
 import com.wayqui.transaq.dto.TransactionChannel;
 import com.wayqui.transaq.dto.TransactionDto;
 import com.wayqui.transaq.dto.TransactionStatusDto;
-import com.wayqui.transaq.dto.ValidationDto;
 import com.wayqui.transaq.exception.BusinessException;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
-import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
-public abstract class TransactionService {
-
-    /**
-     * Function to perform JSR validations on an object. In this case it will validate the input
-     * data that comes from the user (through the controller)
-     * @param input the input object to be validated
-     * @param <I> the data type of the input object
-     * @return a list of errors
-     */
-    public <I> ValidationDto validate(I input) {
-        List<String> validationErrors = new ArrayList<>();
-        Set<ConstraintViolation<I>> violations = new HashSet<>();
-
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-
-        if (input != null) {
-            validator.validate(input).stream().forEach(
-                    violation -> validationErrors.add(violation.getMessage()));
-        } else {
-            validationErrors.add("Input value must not be null");
-        }
-
-        return ValidationDto.builder().message("Validation error").errors(validationErrors).build();
-    }
+public interface TransactionService {
 
     /**
      * This method creates a transaction with the information from the input: Reference, IBAN, amount, fee and description.
@@ -53,7 +19,7 @@ public abstract class TransactionService {
      * - If the fee is greather than the amount
      * - If is a debit transaction and will leave the total balance for the IBAN bellow zero
      */
-    public abstract TransactionDto createTransaction(TransactionDto transaction) throws BusinessException;
+    TransactionDto createTransaction(TransactionDto transaction) throws BusinessException;
 
     /**
      * Obtains the list of transactions associated with an account (IBAN), you can also sort the output
@@ -62,7 +28,7 @@ public abstract class TransactionService {
      * @param ascending sorting criteria: Ascending, descending or no sorting criteria if not informed
      * @return the list of transactions or an  empty list if there isn't one.
      */
-    public abstract List<TransactionDto> findTransactions(String account_iban, Boolean ascending);
+    List<TransactionDto> findTransactions(String account_iban, Boolean ascending);
 
     /**
      * Obtains the status of a transaction. The list of status are: PENDING, SETTLED, INVALID, FUTURE
@@ -72,5 +38,5 @@ public abstract class TransactionService {
      * @param channel chanel that is requesting the transaction (ATM, INTERNAL, CLIENT)
      * @return a transaction status
      */
-    public abstract TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel);
+    TransactionStatusDto obtainTransactionStatus(String reference, TransactionChannel channel);
 }
