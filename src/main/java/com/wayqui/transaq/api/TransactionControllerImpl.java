@@ -36,15 +36,15 @@ public class TransactionControllerImpl implements TransactionController {
             TransactionDto response = service.createTransaction(
                     TransactionMapper.INSTANCE.requestToDto(transaction));
 
-        TransactionEvent transactEvent = TransactionEvent.builder()
-                .id(new Random().nextLong())
-                .transactionDto(response)
-                .recordHeaders(Collections.singletonList(new RecordHeader("Origin", "Transaq".getBytes())))
-                .build();
-        kafkaProducer.sendAsyncDefaultTopic(transactEvent);
+            TransactionEvent transactEvent = TransactionEvent.builder()
+                    .id(new Random().nextLong())
+                    .transactionDto(response)
+                    .recordHeaders(Collections.singletonList(new RecordHeader("Origin", "Transaq".getBytes())))
+                    .build();
+            kafkaProducer.sendAsyncDefaultTopic(transactEvent);
 
-        return Response.status(Response.Status.CREATED)
-                .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
+            return Response.status(Response.Status.CREATED)
+                    .entity(TransactionMapper.INSTANCE.dtoToResponse(response)).build();
 
         } catch (BusinessException e) {
             ApiErrorResponse errorResponse = ApiErrorResponse.builder()
