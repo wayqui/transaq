@@ -1,0 +1,15 @@
+[
+  {
+      "type": "record",
+      "namespace": "com.wayqui.avro",
+      "name": "TransactionAvro",
+      "fields": [
+        { "name": "reference", "type": "string", "doc":"Transaction reference" },
+        { "name": "iban", "type": "string", "doc":"Account IBAN number" },
+        { "name": "date", "type": "long", "logicalType": "timestamp-micros", "doc": "Date of the transaction" },
+        { "name": "amount", "type": "bytes", "logicalType": "decimal", "precision": 6, "scale": 2 , "doc": "Amount of the transaction" },
+        { "name": "fee", "type": "bytes", "logicalType": "decimal", "precision": 6, "scale": 2 , "doc": "Fee of the transaction" },
+        { "name": "description", "type": "string", "doc": "Description of the transaction" }
+      ]
+  }
+]

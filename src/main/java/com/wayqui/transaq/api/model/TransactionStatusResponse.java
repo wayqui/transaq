@@ -3,6 +3,7 @@ package com.wayqui.transaq.api.model;
 import lombok.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Builder
 @Getter
@@ -16,6 +17,6 @@ public class TransactionStatusResponse implements Serializable {
 
     private String reference;
     private String status;
-    private Double amount;
-    private Double fee;
+    private BigDecimal amount;
+    private BigDecimal fee;
 }

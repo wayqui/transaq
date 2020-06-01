@@ -1,10 +1,15 @@
 # TransaQ : A Bank transaction handler microservice
 
-This microservice handles transactions for users, the following operations are implemented:
+This is a microservice that handles banking transactions for users, the following operations are implemented:
 
 * Create transaction.
 * Search transactions by IBAN
 * Verify the status of a transaction from a channel
+
+More detail on each operation below.
+
+It also has a kafka producer implement that send successful transaction to a Kafka topic called "transaction-events". This service also uses Apache Avro as message serialization and Confluent Schema Registry as distributed storage layer for Kafka schemas.
+
 
 ## Summary
 
@@ -17,16 +22,51 @@ This service was implemented using:
 * Spring Security
 * JWT Authorization
 * Swagger UI
+* Apache Kafka
+* Apache Avro
+* Confluent Schema Registry 
 
 ## Start the application
 
-* With maven spring-boot command: This command executes the service locally from the source code.
+As this demo microservice needs a kafka instance running we'll include a docker file that contains:
+
+* Kafka Zookeeper
+* Kafka Bootstrap Server.
+* Confluent Schema Registry
+
+## Start the application
+
+### Prepare the Kafka infrastructure
+
+Run the following docker command to start the dockerized Kafka infrastructure.
+
+```bash
+docker-compose up
+```
+
+This will start the following applications:
+
+* confluentinc/cp-enterprise-control-center:5.4.0 
+* confluentinc/cp-schema-registry:5.4.0 
+* confluentinc/cp-server:5.4.0 
+* confluentinc/cp-kafka:5.4.0 
+* confluentinc/cp-zookeeper:5.4.0 
+
+The application needs a topic where the messages will be persisted, for that use the following command to create it:
+
+```bash
+kafka-topics --topic transaction-events --bootstrap-server localhost:9092 --create --replication-factor 1 --partitions 1
+```
+
+### Start the Spring Boot application
+
+With maven spring-boot command: This command executes the service locally from the source code.
 
 ```bash
 mvn spring-boot:run
 ```
 
-* Running the executable war: If you want to generate the artifact and deploy it you should execute:
+Running the executable war: If you want to generate the artifact and deploy it you should execute:
 
  ```bash
  mvn clean -U install
@@ -42,7 +82,7 @@ After started, the service will be available from:
 http://localhost:8080/transaq/rest/
 ```
 
-###Swagger UI endpoint
+### Swagger UI endpoint
 
 It has also a Swagger UI interface for the service, it's located here:
 
@@ -57,7 +97,7 @@ It also contains 2 authorization interfaces, for the 2 authorization mechanisms 
 * The Authentication service requires a basic authentication credentials (mentioned bellow).
 * The set of services in the Transactions endpoint require a JWT authorization.
 
-###Authentication and use
+### Authentication and use
 
 Regarding the authentication, the service has a **basic auth** implemented with credentials:
 
