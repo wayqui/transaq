@@ -23,20 +23,19 @@ This service was implemented using:
 * JWT Authorization
 * Swagger UI
 * Apache Kafka
+* Kafka Streams
 * Apache Avro
-* Confluent Schema Registry 
-
-## Start the application
-
-As this demo microservice needs a kafka instance running we'll include a docker file that contains:
-
-* Kafka Zookeeper
-* Kafka Bootstrap Server.
 * Confluent Schema Registry
 
 ## Start the application
 
 ### Prepare the Kafka infrastructure
+
+As this demo microservice needs a running kafka instance We'll include a docker file that contains:
+
+* Kafka Zookeeper
+* Kafka Bootstrap Server.
+* Confluent Schema Registry
 
 Run the following docker command to start the dockerized Kafka infrastructure.
 
@@ -52,10 +51,16 @@ This will start the following applications:
 * confluentinc/cp-kafka:5.4.0 
 * confluentinc/cp-zookeeper:5.4.0 
 
-The application needs a topic where the messages will be persisted, for that use the following command to create it:
+### Create Kafka topics
+
+The application needs two topics, one in which the transaction data will be persisted (transaction-events), and the other where the account balance per IBAN will be calculated (with data from transaction-events topic) and stored (account-balance).
+
+These are the commands to create such topics from command line:
 
 ```bash
 kafka-topics --topic transaction-events --bootstrap-server localhost:9092 --create --replication-factor 1 --partitions 1
+
+kafka-topics --topic account-balance --bootstrap-server localhost:9092 --create --replication-factor 1 --partitions 1
 ```
 
 ### Start the Spring Boot application
@@ -121,11 +126,7 @@ X-Content-Type-Options: nosniff
 ```
 If the credentials are correct, the JWT token is included in the header of the response. You now can use this token to execute the rest of services.
 
-## Available services
-
-You could call it using CURL as follows:
-
-### Create transaction
+### Create transaction service
 
 ```bash
 curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/' \
@@ -152,7 +153,7 @@ curl --location --request POST 'http://localhost:8080/transaq/rest/transaction/s
 }'
 ```
 
-### Search transactions
+### Search transactions service
 
 ```bash
 curl --location --request GET 'http://localhost:8080/transaq/rest/transaction?account_iban=ES9820385778983000760236&ascending=false' \
@@ -164,7 +165,7 @@ curl --location --request GET 'http://localhost:8080/transaq/rest/transaction?ac
 
 There are configured for this microservice two H2 database connections, one for the application and the other for testing purposes. Current configuration stores both datasources in memory so you can start the microservice and execute the cucumber tests and te same time and there won't be any concurrency issue and the databases wont overlap each other. 
 
-If you want to physically persis your application data you can change the attribute in src/main/resources/application.properties file by simply changing the comment location (and, of course, be sure that the path exists):
+If you want to physically persis your application data you can change the attribute in src/main/resources/application.properties file by simply changing the comment location (and, of course, make sure that the path exists):
 
 ```bash
 spring.datasource.url = jdbc:h2:file:/opt/data/transactiondb

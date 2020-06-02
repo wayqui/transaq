@@ -29,3 +29,15 @@ spring:
         schema:
           registry:
             url: http://localhost:8081
+    streams:
+      application-id: testing-kafka
+      bootstrap-servers: localhost:9092
+      properties:
+        schema:
+          registry:
+            url: http://localhost:8081
+        default:
+          key:
+            serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+          value:
+            serde: com.wayqui.transaq.conf.kafka.streams.serdes.BigDecimalSerde
