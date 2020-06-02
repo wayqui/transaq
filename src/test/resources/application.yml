@@ -22,7 +22,7 @@ spring:
     producer:
       bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.LongSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      value-serializer: com.wayqui.transaq.avro.MockAvroSerializer
       properties:
         acks: all
         retries: 10
