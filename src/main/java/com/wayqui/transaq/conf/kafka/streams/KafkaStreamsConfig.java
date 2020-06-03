@@ -1,4 +1,4 @@
-package com.wayqui.transaq.conf.kafka;
+package com.wayqui.transaq.conf.kafka.streams;
 
 import com.wayqui.avro.TransactionAvro;
 import com.wayqui.transaq.conf.kafka.streams.serdes.BigDecimalSerde;

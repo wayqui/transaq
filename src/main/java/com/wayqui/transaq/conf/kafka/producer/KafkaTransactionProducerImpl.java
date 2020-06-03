@@ -24,9 +24,7 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
     KafkaTemplate<Long, TransactionAvro> kafkaTemplate;
 
     @Override
-    public void sendAsyncDefaultTopic(TransactionEvent event) {
-        TransactionDto dto = event.getTransactionDto();
-
+    public void sendAsyncDefaultTopic(Long key, TransactionDto dto) {
         Conversions.DecimalConversion DECIMAL_CONVERTER = new Conversions.DecimalConversion();
 
         LogicalTypes.Decimal decimaltype = LogicalTypes.decimal(6, 2);
@@ -44,8 +42,8 @@ public class KafkaTransactionProducerImpl implements KafkaTransactionProducer {
                 .build();
 
         ListenableFuture<SendResult<Long, TransactionAvro>> listenerFuture =
-                kafkaTemplate.sendDefault(event.getId(), transactMsg);
-        listenerFuture.addCallback(new ListenerCallback(event.getId(), transactMsg));
+                kafkaTemplate.sendDefault(key, transactMsg);
+        listenerFuture.addCallback(new ListenerCallback(key, transactMsg));
     }
 
     @Override

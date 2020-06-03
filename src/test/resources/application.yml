@@ -20,7 +20,7 @@ spring:
     template:
       default-topic: transaction-events
     producer:
-      bootstrap-servers: localhost:9092
+      bootstrap-servers: ${spring.embedded.kafka.brokers}
       key-serializer: org.apache.kafka.common.serialization.LongSerializer
       value-serializer: com.wayqui.transaq.avro.MockAvroSerializer
       properties:
@@ -31,7 +31,7 @@ spring:
             url: http://localhost:8081
     streams:
       application-id: testing-kafka
-      bootstrap-servers: localhost:9092
+      bootstrap-servers: ${spring.embedded.kafka.brokers}
       properties:
         schema:
           registry:

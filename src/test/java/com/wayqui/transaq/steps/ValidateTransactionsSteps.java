@@ -1,7 +1,9 @@
 package com.wayqui.transaq.steps;
 
+import com.wayqui.avro.TransactionAvro;
 import com.wayqui.transaq.TransaQApplication;
 import com.wayqui.transaq.api.model.*;
+import com.wayqui.transaq.avro.CustomKafkaAvroDeserializer;
 import com.wayqui.transaq.conf.kafka.producer.KafkaTransactionProducer;
 import com.wayqui.transaq.conf.security.JWTTokenHandler;
 import com.wayqui.transaq.conf.security.SecurityConstants;
@@ -9,6 +11,11 @@ import com.wayqui.transaq.dao.UserRepository;
 import com.wayqui.transaq.entity.AppUser;
 import com.wayqui.transaq.service.UserService;
 import io.cucumber.java8.En;
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalTypes;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.serialization.LongDeserializer;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
@@ -25,16 +35,14 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
 @SpringBootTest(classes = TransaQApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(
         topics = {"transaction-events"},
-        partitions = 3,
+        partitions = 1,
         brokerProperties={
                 "log.dir=out/embedded-kafka"
         })
@@ -67,7 +75,12 @@ public class ValidateTransactionsSteps implements En {
     private JWTTokenHandler tokenHandler;
 
     @Autowired
+    private EmbeddedKafkaBroker kafkaBroker;
+
+    @Autowired
     private KafkaTransactionProducer kafkaProducer;
+
+    private Consumer<Long, TransactionAvro> consumer;
 
     private String username;
     private String password;
@@ -83,10 +96,29 @@ public class ValidateTransactionsSteps implements En {
     private String validToken;
 
     public ValidateTransactionsSteps() {
+
+        Before(() -> {
+            log.info("Setting things Up... ");
+
+            Map<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("group", "true", kafkaBroker));
+            configs.put("key.deserializer", LongDeserializer.class);
+            configs.put("value.deserializer", CustomKafkaAvroDeserializer.class);
+            configs.put("schema.registry.url", "not-used");
+            configs.put("specific.avro.reader", "true");
+
+            consumer = new DefaultKafkaConsumerFactory<Long, TransactionAvro>(configs).createConsumer();
+
+            kafkaBroker.consumeFromAllEmbeddedTopics(consumer);
+        });
+
         this.stepsForAuthentication();
         this.stepsForValidateTransactions();
         this.stepsForCreateTransactions();
 
+        After(() -> {
+            log.info("Tearing things down... ");
+            consumer.close();
+        });
     }
 
     private void stepsForAuthentication() {
@@ -129,7 +161,7 @@ public class ValidateTransactionsSteps implements En {
                     .amount(new BigDecimal("2850.30"))
                     .date(OffsetDateTime.now())
                     .description("Salary for april 2020")
-                    .fee(new BigDecimal("35.5"))
+                    .fee(new BigDecimal("35.50"))
                     .build();
         });
 
@@ -227,6 +259,30 @@ public class ValidateTransactionsSteps implements En {
         And("^the transaction reference is informed$", () -> {
             log.info("the transaction reference is informed");
             Assert.assertNotNull(referenceId);
+        });
+
+        And("^the transaction is stored in Kafka$", () -> {
+            log.info("the transaction is stored in Kafka");
+
+            ConsumerRecord<Long, TransactionAvro> consumerRecord =
+                    KafkaTestUtils.getSingleRecord(consumer, "transaction-events");
+
+            Thread.sleep(3000);
+
+            TransactionAvro resultMessage = consumerRecord.value();
+
+            Conversions.DecimalConversion DECIMAL_CONVERTER = new Conversions.DecimalConversion();
+            LogicalTypes.Decimal decimalType = LogicalTypes.decimal(6, 2);
+
+            BigDecimal amount = DECIMAL_CONVERTER.fromBytes(resultMessage.getAmount(), null, decimalType);
+            BigDecimal fee = DECIMAL_CONVERTER.fromBytes(resultMessage.getFee(), null, decimalType);
+
+            Assert.assertEquals(unregisteredTransac.getAccount_iban(), resultMessage.getIban());
+            Assert.assertEquals(unregisteredTransac.getDescription(), resultMessage.getDescription());
+            Assert.assertNotNull(resultMessage.getReference());
+            Assert.assertEquals(unregisteredTransac.getAmount(), amount);
+            Assert.assertEquals(unregisteredTransac.getFee(), fee);
+            Assert.assertEquals(unregisteredTransac.getDate().toInstant().toEpochMilli(), resultMessage.getDate().longValue());
         });
 
         When("^I try to persist the transaction in database$", () -> {

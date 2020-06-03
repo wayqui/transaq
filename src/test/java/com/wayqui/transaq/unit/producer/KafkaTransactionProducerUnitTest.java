@@ -23,7 +23,6 @@ import org.springframework.util.concurrent.SettableListenableFuture;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -120,7 +119,7 @@ public class KafkaTransactionProducerUnitTest {
 
         assertEquals(transactionEvent.getTransactionDto().getAmount(), amount);
         assertEquals(transactionEvent.getTransactionDto().getFee(), fee);
-        assertEquals(transactionEvent.getTransactionDto().getDate(), Instant.ofEpochMilli(resultMessage.getDate()));
+        assertEquals(transactionEvent.getTransactionDto().getDate().toInstant().toEpochMilli(), resultMessage.getDate());
         assertEquals(transactionEvent.getTransactionDto().getIban(), resultMessage.getIban());
         assertEquals(transactionEvent.getTransactionDto().getDescription(), resultMessage.getDescription());
         assertEquals(transactionEvent.getTransactionDto().getReference(), resultMessage.getReference());

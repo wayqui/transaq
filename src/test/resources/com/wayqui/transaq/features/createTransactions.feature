@@ -15,6 +15,7 @@ Feature: Transaction creation scenarios
     When I persist the transaction in database
     Then The service returns the HTTP status 'Created'
     And the transaction reference is informed
+    And the transaction is stored in Kafka
 
     Examples:
       |account_iban|date|amount|fee|description|
